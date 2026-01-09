@@ -98,21 +98,28 @@ def index_into_memory(source_type: str, title: str, full_text: str, extra_meta: 
     
     now_iso = datetime.now(timezone.utc).isoformat()
     base_meta = {"source_type": source_type, "title": title or "", "created_at": now_iso}
-    if extra_meta: base_meta.update(extra_meta)
+    if extra_meta: 
+        # Ensure all meta values are strings, ints, or floats for Chroma
+        clean_extra = {k: str(v) if v is not None else "" for k,v in extra_meta.items()}
+        base_meta.update(clean_extra)
     
     ids=[]; metadatas=[]; documents=[]
-    ts_base = int(time.time())
+    import uuid
     
     for i,chunk in enumerate(chunks):
-        ids.append(f"{source_type}{ts_base}{i}")
+        # Use UUID to prevent collisions if multiple items indexed same second
+        unique_id = f"{source_type}_{uuid.uuid4().hex[:8]}_{i}"
+        ids.append(unique_id)
         m = base_meta.copy(); m["chunk_index"] = i
         metadatas.append(m)
         documents.append(chunk)
         
     try:
+        print(f"Indexing {len(chunks)} chunks for {source_type}: {title}")
         memory_collection.add(documents=documents, metadatas=metadatas, ids=ids)
         return f"✅ Indexed {len(chunks)} chunks of {source_type} '{title}' into memory."
     except Exception as e:
+        print(f"Indexing Error: {e}")
         return f"❌ Indexing failed: {e}"
 
 def safe_call_llm(messages: list[dict[str,str]], max_new_tokens:int=400, temperature:float=0.2) -> str:
@@ -133,7 +140,7 @@ def safe_call_llm(messages: list[dict[str,str]], max_new_tokens:int=400, tempera
     }
     
     try:
-        print(f"Calling Mistral API: {MISTRAL_API_URL} with model {MISTRAL_MODEL}")
+        print(f"Calling Mistral Chat API: {MISTRAL_MODEL}")
         response = requests.post(MISTRAL_API_URL, headers=headers, json=payload, timeout=30)
         
         if response.status_code == 200:
@@ -151,26 +158,33 @@ def ask_seva_sakha(query: str, scope: str="all") -> str:
     if not q: return "Please enter a question."
     
     where = None
-    if scope and scope != "all": where = {"source_type": scope}
+    if scope and scope != "all": 
+        where = {"source_type": scope}
+    
+    print(f"Querying memory with scope: {scope}, where filter: {where}")
     
     try:
-        res = memory_collection.query(query_texts=[q], n_results=4, where=where)
+        # Increase n_results to find more potential matches
+        res = memory_collection.query(query_texts=[q], n_results=8, where=where)
         docs = res.get("documents", [[]])[0]
         metas = res.get("metadatas", [[]])[0]
+        
+        print(f"Found {len(docs)} documents in memory for query.")
     except Exception as e:
+        print(f"Search error: {e}")
         return f"Memory search failed: {e}"
         
     if not docs:
-        return "No relevant memory found. Please index documents/emails/meetings first."
+        return f"No relevant memory found for '{scope}' scope. Please ensure you have indexed data in this category."
         
     ctx = ""
     for i, (d, m) in enumerate(zip(docs, metas), 1):
-        source_type = m.get('source_type', 'unknown')
-        title = m.get('title', 'unknown')
-        ctx += f"--- Document {i} ({source_type}: {title}) ---\n{d}\n\n"
+        s_type = m.get('source_type', 'unknown')
+        s_title = m.get('title', 'unknown')
+        ctx += f"--- Result {i} (Category: {s_type}, Title: {s_title}) ---\n{d}\n\n"
         
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": f"Based on the following documents, please answer this question: {q}\n\nDocuments:\n{ctx}\n\nAnswer:"}
+        {"role": "user", "content": f"Based on the following context, please answer the question: {q}\n\nContext:\n{ctx}\n\nAnswer:"}
     ]
     return safe_call_llm(messages, max_new_tokens=500)
