@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="text-center py-12">
+    <h1 class="text-4xl font-bold tracking-tight text-white mb-4">Welcome to Seva-Sakha</h1>
+    <p class="text-xl text-slate-400 max-w-2xl mx-auto mb-12">Your intelligent executive assistant for managing emails,
+        documents, meetings, and contacts efficiently.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Card 1: Chat -->
+        <a href="/chat"
+            class="block p-6 bg-slate-800 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
+            <h3 class="text-lg font-semibold text-white mb-2">🧠 Ask Seva-Sakha</h3>
+            <p class="text-slate-400">Query your organization's memory using RAG.</p>
+        </a>
+
+        <!-- Card 2: Email -->
+        <a href="/email"
+            class="block p-6 bg-slate-800 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
+            <h3 class="text-lg font-semibold text-white mb-2">📧 Email Manager</h3>
+            <p class="text-slate-400">Fetch important emails and index them automatically.</p>
+        </a>
+
+        <!-- Card 3: Documents -->
+        <a href="/documents"
+            class="block p-6 bg-slate-800 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
+            <h3 class="text-lg font-semibold text-white mb-2">📄 Document Processor</h3>
+            <p class="text-slate-400">Upload PDFs/TXTs for OCR, summarization, and indexing.</p>
+        </a>
+
+        <!-- Card 4: Contacts -->
+        <a href="/contacts"
+            class="block p-6 bg-slate-800 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
+            <h3 class="text-lg font-semibold text-white mb-2">👥 Contacts</h3>
+            <p class="text-slate-400">Manage and remember your professional network.</p>
+        </a>
+
+        <!-- Card 5: Log Items -->
+        <a href="/items"
+            class="block p-6 bg-slate-800 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
+            <h3 class="text-lg font-semibold text-white mb-2">📅 Log Items</h3>
+            <p class="text-slate-400">Record meetings, decisions, and travel plans.</p>
+        </a>
+    </div>
+</div>
+{% endblock %}

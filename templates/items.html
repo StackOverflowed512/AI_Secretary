@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+
+    <!-- Meeting -->
+    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700">
+        <h2 class="text-xl font-bold mb-4 text-indigo-400">📅 Log Meeting</h2>
+        <form method="post">
+            <input type="hidden" name="type" value="meeting">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Title</label>
+                    <input type="text" name="title"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Date</label>
+                    <input type="text" name="date"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
+                        placeholder="YYYY-MM-DD HH:MM">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm text-slate-400 mb-1">Participants</label>
+                <input type="text" name="participants"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm text-slate-400 mb-1">Notes</label>
+                <textarea name="notes" rows="3"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"></textarea>
+            </div>
+            <button type="submit" class="bg-slate-700 hover:bg-slate-600 text-white text-sm py-2 px-4 rounded-md">Index
+                Meeting</button>
+        </form>
+    </div>
+
+    <!-- Decision -->
+    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700">
+        <h2 class="text-xl font-bold mb-4 text-emerald-400">⚖️ Log Decision</h2>
+        <form method="post">
+            <input type="hidden" name="type" value="decision">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Title</label>
+                    <input type="text" name="title"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Date</label>
+                    <input type="date" name="date"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm text-slate-400 mb-1">Decision Details</label>
+                <textarea name="text" rows="3"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"></textarea>
+            </div>
+            <button type="submit" class="bg-slate-700 hover:bg-slate-600 text-white text-sm py-2 px-4 rounded-md">Index
+                Decision</button>
+        </form>
+    </div>
+
+    <!-- Travel -->
+    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700">
+        <h2 class="text-xl font-bold mb-4 text-orange-400">✈️ Log Travel</h2>
+        <form method="post">
+            <input type="hidden" name="type" value="travel">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Title</label>
+                    <input type="text" name="title"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Start Date</label>
+                    <input type="date" name="start"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">End Date</label>
+                    <input type="date" name="end"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm text-slate-400 mb-1">Details</label>
+                <textarea name="details" rows="3"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"></textarea>
+            </div>
+            <button type="submit" class="bg-slate-700 hover:bg-slate-600 text-white text-sm py-2 px-4 rounded-md">Index
+                Travel</button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}
