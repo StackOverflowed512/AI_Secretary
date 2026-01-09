@@ -17,7 +17,7 @@ import rag_utils
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey" # Replace with env var in production
+app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey") # Replace with env var in production
 
 # Config
 UPLOAD_FOLDER = 'uploads'

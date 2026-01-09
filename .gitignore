@@ -8,3 +8,11 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Secrets
+.env
+
+# Local DBs and Data
+*.db
+chroma_store/
+uploads/
