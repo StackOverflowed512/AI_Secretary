@@ -106,7 +106,7 @@ def send_email_smtp(host, port, user, password, to_addr, subject, body):
         msg["To"] = to_addr
         msg["Subject"] = subject or "(no subject)"
         
-        server = smtplib.SMTP(host, port)
+        server = smtplib.SMTP(host, port, timeout=10)
         server.starttls()
         server.login(user, password)
         server.sendmail(user, [to_addr], msg.as_string())

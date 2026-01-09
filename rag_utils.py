@@ -12,7 +12,7 @@ CHROMA_PATH = os.environ.get("CHROMA_PATH", "chroma_store")
 if not os.path.isabs(CHROMA_PATH):
       CHROMA_PATH = os.path.join(os.getcwd(), CHROMA_PATH)
 
-CHROMA_COLLECTION = "executive_memory"
+CHROMA_COLLECTION = "executive_memory_mistral"
 # Mistral Config
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 MISTRAL_API_URL = os.getenv("MISTRAL_API_URL", "https://api.mistral.ai/v1/chat/completions")
