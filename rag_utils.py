@@ -1,7 +1,7 @@
 import os
 import time
 import chromadb
-from chromadb.utils import embedding_functions
+# from chromadb.utils import embedding_functions
 from datetime import datetime, timezone
 import requests
 from dotenv import load_dotenv
@@ -13,11 +13,10 @@ if not os.path.isabs(CHROMA_PATH):
       CHROMA_PATH = os.path.join(os.getcwd(), CHROMA_PATH)
 
 CHROMA_COLLECTION = "executive_memory"
-EMBED_MODEL_NAME = "all-MiniLM-L6-v2"
-
 # Mistral Config
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 MISTRAL_API_URL = os.getenv("MISTRAL_API_URL", "https://api.mistral.ai/v1/chat/completions")
+MISTRAL_EMBED_URL = "https://api.mistral.ai/v1/embeddings"
 MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
 
 SYSTEM_PROMPT = "You are Seva-Sakha, an executive assistant for the CEO. Be concise and action oriented. Use the provided context to answer questions accurately."
@@ -25,11 +24,51 @@ SYSTEM_PROMPT = "You are Seva-Sakha, an executive assistant for the CEO. Be conc
 # Global state
 memory_collection = None
 
+class MistralEmbeddingFunction:
+    def __call__(self, input: list[str]) -> list[list[float]]:
+        if not MISTRAL_API_KEY:
+            print("Error: MISTRAL_API_KEY not found.")
+            return []
+        
+        # Mistral embedding API expects 'input' as list of strings
+        # Remove newlines as recommended for some models, though Mistral is robust.
+        # We process in batches if needed, but for now simple pass-through.
+        headers = {
+            "Authorization": f"Bearer {MISTRAL_API_KEY}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+        payload = {
+            "model": "mistral-embed",
+            "input": input
+        }
+        
+        try:
+            resp = requests.post(MISTRAL_EMBED_URL, headers=headers, json=payload, timeout=30)
+            if resp.status_code == 200:
+                data = resp.json().get('data', [])
+                # Ensure correct order
+                embeddings = [item['embedding'] for item in data]
+                return embeddings
+            else:
+                print(f"Mistral Embed Error: {resp.status_code} - {resp.text}")
+                return []
+        except Exception as e:
+            print(f"Embedding failed: {e}")
+            return []
+
 def init_chroma():
     global memory_collection
     print("Initializing Chroma at:", CHROMA_PATH)
-    chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
-    embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=EMBED_MODEL_NAME)
+    
+    # Disable telemetry to avoid startup errors
+    from chromadb.config import Settings
+    chroma_client = chromadb.PersistentClient(
+        path=CHROMA_PATH,
+        settings=Settings(anonymized_telemetry=False)
+    )
+    
+    embedding_fn = MistralEmbeddingFunction()
     memory_collection = chroma_client.get_or_create_collection(name=CHROMA_COLLECTION, embedding_function=embedding_fn)
     print("Chroma collection ready:", memory_collection.name)
 
