@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-8">
+        <h1 class="text-3xl font-extrabold text-white mb-2">Knowledge Hub</h1>
+        <p class="text-slate-400">Feed the assistant with data to make its RAG (Retrieval-Augmented Generation) more effective. This is where your Seva-Sakha "learns" from your personal and professional documents.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8">
+        <!-- Quick Learn Text Ingestion -->
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
+            <h2 class="text-xl font-bold text-emerald-400 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Quick Learn
+            </h2>
+            <form action="/knowledge" method="POST">
+                <input type="hidden" name="action" value="quick_learn">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Title / Source Name</label>
+                    <input type="text" name="title" placeholder="e.g. Project X Overview" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Information to Remember</label>
+                    <textarea name="content" rows="6" placeholder="Paste text, meeting notes, or any info here..." class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required></textarea>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-md transition-all">
+                    Index Information
+                </button>
+            </form>
+        </div>
+
+        <!-- Bulk File Upload -->
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
+            <h2 class="text-xl font-bold text-blue-400 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Document Ingestion
+            </h2>
+            <form action="/knowledge" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="file_upload">
+                <div class="mb-6 p-8 border-2 border-dashed border-slate-700 rounded-lg text-center hover:border-blue-500 transition-colors cursor-pointer" onclick="document.getElementById('file-input').click()">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-slate-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p class="text-sm text-slate-400">Click to upload PDF or text files</p>
+                    <p class="text-xs text-slate-500 mt-1">Files are analyzed via OCR and indexed for RAG</p>
+                    <input id="file-input" type="file" name="file" class="hidden" onchange="this.form.submit()">
+                </div>
+                <div class="text-xs text-slate-500 italic">
+                    Note: Large files may take a moment to process (OCR + Vector Indexing).
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="mt-12 bg-slate-800/50 p-6 rounded-xl border border-slate-700">
+        <h3 class="text-lg font-bold text-slate-200 mb-4">Continuous Learning Pipeline</h3>
+        <div class="grid md:grid-cols-3 gap-6 text-sm text-slate-400">
+            <div class="flex flex-col">
+                <div class="bg-indigo-900/40 text-indigo-300 w-8 h-8 rounded-full flex items-center justify-center font-bold mb-3">1</div>
+                <p><strong>Capture:</strong> You feed data through emails, files, or direct notes. Seva-Sakha automatically extracts the core concepts.</p>
+            </div>
+            <div class="flex flex-col">
+                <div class="bg-indigo-900/40 text-indigo-300 w-8 h-8 rounded-full flex items-center justify-center font-bold mb-3">2</div>
+                <p><strong>Vectorize:</strong> Data is transformed into mathematical vectors using Mistral Embeddings and stored in your local persistent memory.</p>
+            </div>
+            <div class="flex flex-col">
+                <div class="bg-indigo-900/40 text-indigo-300 w-8 h-8 rounded-full flex items-center justify-center font-bold mb-3">3</div>
+                <p><strong>Recall:</strong> During chat, the assistant queries this memory in real-time, providing answers based on *your* specific data.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

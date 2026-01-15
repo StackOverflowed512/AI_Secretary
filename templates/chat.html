@@ -6,11 +6,12 @@
 
     <div class="bg-slate-800 rounded-lg p-6 border border-slate-700 mb-6">
         <form method="post" action="/chat">
+            <input type="hidden" name="action" value="ask">
             <div class="mb-4">
                 <label for="query" class="block text-sm font-medium text-slate-300 mb-2">Your Question</label>
                 <textarea name="query" id="query" rows="3"
                     class="w-full bg-slate-900 border border-slate-600 rounded-md p-3 text-white focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="e.g., What was the decision on the marketing budget?"></textarea>
+                    placeholder="e.g., What was the decision on the marketing budget?">{{ query or '' }}</textarea>
             </div>
 
             <div class="mb-6">
@@ -35,12 +36,33 @@
     </div>
 
     {% if answer %}
-    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700">
-        <h3 class="text-lg font-semibold mb-3 text-indigo-400">Answer</h3>
-        <div class="prose prose-invert max-w-none">
+    <div class="bg-indigo-900/20 rounded-lg p-6 border border-indigo-700/50 shadow-lg animate-in fade-in duration-500">
+        <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-blue-400 bg-clip-text text-transparent italic">Seva-Sakha's Response</h3>
+            
+            <!-- Remember Feature -->
+            <form method="POST" action="/chat">
+                <input type="hidden" name="action" value="remember">
+                <input type="hidden" name="mem_title" value="Q: {{ query[:50] }}...">
+                <input type="hidden" name="mem_content" value="Question: {{ query }}\nAnswer: {{ answer }}">
+                <button type="submit" class="text-xs bg-slate-700 hover:bg-emerald-600 text-slate-300 hover:text-white px-3 py-1 rounded transition-all flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                    </svg>
+                    Remember this exchange
+                </button>
+            </form>
+        </div>
+        
+        <div class="prose prose-invert max-w-none text-slate-200 leading-relaxed border-l-4 border-indigo-500 pl-4 py-2">
             {{ answer | replace('\n', '<br>') | safe }}
+        </div>
+
+        <div class="mt-4 text-xs text-slate-500 italic">
+            This response was generated using Retrieval Augmented Generation from your personalized database.
         </div>
     </div>
     {% endif %}
+</div>
 </div>
 {% endblock %}

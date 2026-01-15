@@ -87,12 +87,24 @@ def email_page():
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
     answer = ""
+    query = ""
     if request.method == 'POST':
-        query = request.form.get('query')
+        action = request.form.get('action', 'ask') # Default to ask
+        query = request.form.get('query', '')
         scope = request.form.get('scope', 'all')
-        if query:
-            answer = rag_utils.ask_seva_sakha(query, scope)
-    return render_template('chat.html', answer=answer)
+        
+        if action == 'ask':
+            if query:
+                answer = rag_utils.ask_seva_sakha(query, scope)
+        elif action == 'remember':
+            # This allows the user to explicitly ask the assistant to remember the last exchange
+            mem_content = request.form.get('mem_content', '')
+            mem_title = request.form.get('mem_title', 'Conversation Memory')
+            if mem_content:
+                msg = rag_utils.index_into_memory("interaction", mem_title, mem_content)
+                flash(msg, "success")
+                
+    return render_template('chat.html', answer=answer, query=query)
 
 @app.route('/documents', methods=['GET', 'POST'])
 def documents():
@@ -147,6 +159,37 @@ def contacts():
     contacts_list = db.query(models.Contact).order_by(models.Contact.name).all()
     db.close()
     return render_template('contacts.html', contacts=contacts_list)
+
+@app.route('/knowledge', methods=['GET', 'POST'])
+def knowledge_hub():
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'quick_learn':
+            title = request.form.get('title')
+            content = request.form.get('content')
+            if title and content:
+                msg = rag_utils.index_into_memory("general_knowledge", title, content)
+                flash(msg, "success")
+            else:
+                flash("Title and content are required.", "danger")
+                
+        elif action == 'file_upload':
+            file = request.files.get('file')
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(path)
+                
+                # Use existing extraction logic
+                text = cv_utils.extract_pdf_with_ocr(path)
+                if text.strip():
+                    msg = rag_utils.index_into_memory("document", filename, text)
+                    flash(msg, "success")
+                else:
+                    flash("Could not extract text from document.", "danger")
+        
+    return render_template('knowledge.html')
 
 @app.route('/items', methods=['GET', 'POST'])
 def items():
