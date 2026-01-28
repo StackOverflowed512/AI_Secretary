@@ -1,53 +1,170 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="text-center py-12">
-    <h1 class="text-4xl font-bold tracking-tight text-white mb-4">Welcome to Seva-Sakha</h1>
-    <p class="text-xl text-slate-400 max-w-2xl mx-auto mb-12">Your intelligent executive assistant for managing emails,
-        documents, meetings, and contacts efficiently.</p>
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="md:flex md:items-center md:justify-between">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-bold leading-7 text-white sm:text-3xl sm:truncate">Executive Dashboard</h2>
+            <p class="mt-1 text-sm text-slate-400">Welcome back. Here is your daily overview.</p>
+        </div>
+    </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Card 1: Chat -->
-        <a href="/chat"
-            class="block p-6 bg-slate-800 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
-            <h3 class="text-lg font-semibold text-white mb-2">🧠 Ask Seva-Sakha</h3>
-            <p class="text-slate-400">Query your organization's memory using RAG.</p>
-        </a>
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- Contacts -->
+        <div class="bg-slate-800 overflow-hidden shadow rounded-lg border border-slate-700">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-slate-400 truncate">Total Contacts</dt>
+                <dd class="mt-1 text-3xl font-semibold text-white">{{ total_contacts }}</dd>
+            </div>
+        </div>
+        <!-- Meetings -->
+        <div class="bg-slate-800 overflow-hidden shadow rounded-lg border border-slate-700">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-slate-400 truncate">Upcoming Meetings</dt>
+                <dd class="mt-1 text-3xl font-semibold text-emerald-400">{{ upcoming_meetings }}</dd>
+            </div>
+        </div>
+        <!-- Tasks -->
+        <div class="bg-slate-800 overflow-hidden shadow rounded-lg border border-slate-700">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-slate-400 truncate">Pending Tasks</dt>
+                <dd class="mt-1 text-3xl font-semibold text-amber-400">{{ pending_tasks }}</dd>
+            </div>
+        </div>
+        <!-- Messages -->
+        <div class="bg-slate-800 overflow-hidden shadow rounded-lg border border-slate-700">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-slate-400 truncate">System Alerts</dt>
+                <dd class="mt-1 text-3xl font-semibold text-blue-400">0</dd>
+            </div>
+        </div>
+    </div>
 
-        <!-- Card 2: Email -->
-        <a href="/email"
-            class="block p-6 bg-slate-800 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
-            <h3 class="text-lg font-semibold text-white mb-2">📧 Email Manager</h3>
-            <p class="text-slate-400">Fetch important emails and index them automatically.</p>
-        </a>
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Left Column: Analytics Chart -->
+        <div class="lg:col-span-2 bg-slate-800 rounded-lg border border-slate-700 p-6">
+            <h3 class="text-lg leading-6 font-medium text-white mb-4">Task Status Distribution</h3>
+            <div class="relative h-64 w-full">
+                <canvas id="taskChart"></canvas>
+            </div>
+        </div>
 
-        <!-- Card 3: Documents -->
-        <a href="/documents"
-            class="block p-6 bg-slate-800 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
-            <h3 class="text-lg font-semibold text-white mb-2">📄 Document Processor</h3>
-            <p class="text-slate-400">Upload PDFs/TXTs for OCR, summarization, and indexing.</p>
-        </a>
+        <!-- Right Column: Recent Activity -->
+        <div class="bg-slate-800 rounded-lg border border-slate-700 p-6">
+            <h3 class="text-lg leading-6 font-medium text-white mb-4">Recent Activity</h3>
+            <div class="flow-root">
+                <ul role="list" class="-mb-8">
+                    {% for log in recent_logs %}
+                    <li>
+                        <div class="relative pb-8">
+                            {% if not loop.last %}
+                            <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-slate-600" aria-hidden="true"></span>
+                            {% endif %}
+                            <div class="relative flex space-x-3">
+                                <div>
+                                    <span class="h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center ring-8 ring-slate-800">
+                                        <!-- Heroicon name: solid/user -->
+                                        <svg class="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                    <div>
+                                        <p class="text-sm text-slate-300">{{ log.description }} <span class="text-slate-500 font-normal">({{ log.event_type }})</span></p>
+                                    </div>
+                                    <div class="text-right text-sm whitespace-nowrap text-slate-500">
+                                        <time datetime="{{ log.timestamp }}">{{ log.timestamp.strftime('%H:%M') }}</time>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="mt-6">
+                <a href="#" class="w-full flex justify-center items-center px-4 py-2 border border-slate-600 shadow-sm text-sm font-medium rounded-md text-slate-300 bg-slate-700 hover:bg-slate-600">
+                    View all inputs
+                </a>
+            </div>
+        </div>
+    </div>
 
-        <!-- Card 4: Contacts -->
-        <a href="/contacts"
-            class="block p-6 bg-slate-800 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
-            <h3 class="text-lg font-semibold text-white mb-2">👥 Contacts</h3>
-            <p class="text-slate-400">Manage and remember your professional network.</p>
-        </a>
-
-        <!-- Card 5: Log Items -->
-        <a href="/items"
-            class="block p-6 bg-slate-800 rounded-lg border border-slate-700 hover:border-indigo-500 transition-colors">
-            <h3 class="text-lg font-semibold text-white mb-2">📅 Log Items</h3>
-            <p class="text-slate-400">Record meetings, decisions, and travel plans.</p>
-        </a>
-
-        <!-- Card 6: Knowledge Hub -->
-        <a href="/knowledge"
-            class="block p-6 bg-slate-800/80 rounded-lg border-2 border-emerald-500/30 hover:border-emerald-500 shadow-lg shadow-emerald-500/10 transition-all transform hover:-translate-y-1">
-            <h3 class="text-lg font-bold text-emerald-400 mb-2">💎 Knowledge Hub</h3>
-            <p class="text-slate-300">The central "Memory Provision". Feed data and manage what the assistant knows.</p>
-        </a>
+    <!-- Quick Actions Link Grid -->
+    <div>
+        <h3 class="text-lg leading-6 font-medium text-white mb-4">Quick Actions</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <a href="/chat" class="p-4 bg-slate-800 border border-slate-700 rounded-lg hover:border-indigo-500 transition text-center group">
+                <span class="block text-2xl mb-1 group-hover:scale-110 transition-transform">🧠</span>
+                <span class="text-sm text-slate-300">Chat</span>
+            </a>
+            <a href="/email" class="p-4 bg-slate-800 border border-slate-700 rounded-lg hover:border-indigo-500 transition text-center group">
+                <span class="block text-2xl mb-1 group-hover:scale-110 transition-transform">📧</span>
+                <span class="text-sm text-slate-300">Email</span>
+            </a>
+            <a href="/documents" class="p-4 bg-slate-800 border border-slate-700 rounded-lg hover:border-indigo-500 transition text-center group">
+                <span class="block text-2xl mb-1 group-hover:scale-110 transition-transform">📄</span>
+                <span class="text-sm text-slate-300">Docs</span>
+            </a>
+            <a href="/contacts" class="p-4 bg-slate-800 border border-slate-700 rounded-lg hover:border-indigo-500 transition text-center group">
+                <span class="block text-2xl mb-1 group-hover:scale-110 transition-transform">👥</span>
+                <span class="text-sm text-slate-300">Contacts</span>
+            </a>
+            <a href="/items" class="p-4 bg-slate-800 border border-slate-700 rounded-lg hover:border-indigo-500 transition text-center group">
+                <span class="block text-2xl mb-1 group-hover:scale-110 transition-transform">📅</span>
+                <span class="text-sm text-slate-300">Log</span>
+            </a>
+            <a href="/knowledge" class="p-4 bg-slate-800/80 border border-emerald-500/30 rounded-lg hover:border-emerald-500 shadow-emerald-900/10 shadow-lg transition text-center group">
+                <span class="block text-2xl mb-1 group-hover:scale-110 transition-transform">💎</span>
+                <span class="text-sm text-emerald-400 font-bold">Learn</span>
+            </a>
+        </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="task-data" type="application/json">
+    {{ task_dist | tojson }}
+</script>
+<script>
+    const ctx = document.getElementById('taskChart').getContext('2d');
+    const taskData = JSON.parse(document.getElementById('task-data').textContent);
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(taskData),
+            datasets: [{
+                label: '# of Tasks',
+                data: Object.values(taskData),
+                backgroundColor: [
+                    'rgba(251, 191, 36, 0.8)', // Pending - Amber
+                    'rgba(59, 130, 246, 0.8)', // In Progress - Blue
+                    'rgba(16, 185, 129, 0.8)'  // Completed - Emerald
+                ],
+                borderColor: [
+                    'rgba(251, 191, 36, 1)',
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(16, 185, 129, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { color: '#cbd5e1' }
+                }
+            }
+        }
+    });
+</script>
 {% endblock %}

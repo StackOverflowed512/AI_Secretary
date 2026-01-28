@@ -15,6 +15,7 @@ import cv_utils
 import email_utils
 import rag_utils
 from werkzeug.utils import secure_filename
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey") # Replace with env var in production
@@ -44,7 +45,29 @@ EMAIL_CONFIG = {
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    db = SessionLocal()
+    
+    # Analytics Data
+    total_contacts = db.query(models.Contact).count()
+    upcoming_meetings = db.query(models.Meeting).filter(models.Meeting.date_time > datetime.now()).count()
+    pending_tasks = db.query(models.Task).filter(models.Task.status == "Pending").count()
+    recent_logs = db.query(models.LogEntry).order_by(models.LogEntry.timestamp.desc()).limit(5).all()
+    
+    # Chart Data (Dummy distribution for demo if real data is scarce)
+    task_dist = {
+        "Pending": db.query(models.Task).filter(models.Task.status == "Pending").count(),
+        "In Progress": db.query(models.Task).filter(models.Task.status == "In Progress").count(),
+        "Completed": db.query(models.Task).filter(models.Task.status == "Completed").count()
+    }
+    
+    db.close()
+    
+    return render_template('index.html', 
+                          total_contacts=total_contacts,
+                          upcoming_meetings=upcoming_meetings,
+                          pending_tasks=pending_tasks,
+                          recent_logs=recent_logs,
+                          task_dist=task_dist)
 
 @app.route('/email', methods=['GET', 'POST'])
 def email_page():
@@ -198,23 +221,64 @@ def items():
         
         if type_ == 'meeting':
             title = request.form.get('title')
-            date = request.form.get('date')
+            date_str = request.form.get('date')
             participants = request.form.get('participants')
             notes = request.form.get('notes')
+            
+            # Save to DB
+            try:
+                dt = datetime.fromisoformat(date_str) if date_str else datetime.now()
+                m = models.Meeting(title=title, date_time=dt, participants=participants, notes=notes)
+                db = SessionLocal()
+                db.add(m)
+                
+                # Log it
+                log = models.LogEntry(event_type="meeting_added", description=f"Scheduled: {title}")
+                db.add(log)
+                db.commit()
+                db.close()
+            except Exception as e:
+                print(f"DB Error: {e}")
+
             res = rag_utils.index_into_memory("meeting", title, 
-                f"Title: {title}\nDate: {date}\nParticipants: {participants}\n\nNotes:\n{notes}",
-                extra_meta={"participants": participants, "meeting_date": date})
+                f"Title: {title}\nDate: {date_str}\nParticipants: {participants}\n\nNotes:\n{notes}",
+                extra_meta={"participants": participants, "meeting_date": date_str})
             flash(res, "info")
             
         elif type_ == 'decision':
+            # Decisions can go to Tasks or just RAG. For now, let's treat decision as a completed task or just RAG?
+            # User asked for "Analytics". Let's log it as a LogEntry atleast.
             title = request.form.get('title')
             date = request.form.get('date')
             text = request.form.get('text')
+            
+            db = SessionLocal()
+            log = models.LogEntry(event_type="decision_made", description=f"Decision: {title}")
+            db.add(log)
+            db.commit()
+            db.close()
+            
             res = rag_utils.index_into_memory("decision", title, 
                 f"Decision: {title}\nDate: {date}\n\n{text}",
                 extra_meta={"decision_date": date})
             flash(res, "info")
             
+        elif type_ == 'task': # New type for Tasks
+            title = request.form.get('title')
+            due_date_str = request.form.get('due_date')
+            priority = request.form.get('priority')
+            
+            try:
+                due = datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else None
+                t = models.Task(title=title, status="Pending", priority=priority, due_date=due)
+                db = SessionLocal()
+                db.add(t)
+                db.commit()
+                db.close()
+                flash("Task added to dashboard.", "success")
+            except Exception as e:
+                flash(f"Error adding task: {e}", "danger")
+
         elif type_ == 'travel':
             title = request.form.get('title')
             start = request.form.get('start')
