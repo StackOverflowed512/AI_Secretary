@@ -11,5 +11,8 @@ gunicorn
 cryptography==41.0.7
 pysqlite3
 chromadb==0.4.24
-# numpy<2.0.0 # Let pip resolve numpy if needed, or keep if strict
 numpy<2.0.0
+SpeechRecognition
+librosa
+soundfile
+google-cloud-translate

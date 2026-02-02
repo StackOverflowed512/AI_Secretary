@@ -1,0 +1,53 @@
+{% extends "base.html" %} {% block content %}
+<div class="max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold mb-6">Research Assistant</h2>
+
+    <!-- Research Query -->
+    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700 mb-8">
+        <h3 class="text-lg font-semibold mb-4 text-white">Research Topic</h3>
+        <form method="post">
+            <div class="mb-4">
+                <label class="block text-sm text-slate-400 mb-1">Topic</label>
+                <input
+                    type="text"
+                    name="topic"
+                    value="{{ topic or '' }}"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
+                    placeholder="e.g., Market trends in AI"
+                />
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm text-slate-400 mb-1"
+                    >Research Query</label
+                >
+                <textarea
+                    name="query"
+                    rows="4"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
+                    placeholder="Enter your research question..."
+                    required
+                >
+{{ query or '' }}</textarea
+                >
+            </div>
+            <button
+                type="submit"
+                class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-md"
+            >
+                Research
+            </button>
+        </form>
+    </div>
+
+    {% if answer %}
+    <div class="bg-purple-900/20 rounded-lg p-6 border border-purple-700/50">
+        <h3 class="text-xl font-bold text-purple-400 mb-4">
+            Research Findings
+        </h3>
+        <div class="text-slate-200 leading-relaxed whitespace-pre-wrap">
+            {{ answer }}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

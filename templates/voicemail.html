@@ -1,0 +1,126 @@
+{% extends "base.html" %} {% block content %}
+<div class="max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold mb-6">Voicemail Processing</h2>
+
+    <!-- Log Voicemail -->
+    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700 mb-8">
+        <h3 class="text-lg font-semibold mb-4 text-white">Log Voicemail</h3>
+        <form method="post">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1"
+                        >Caller Name</label
+                    >
+                    <input
+                        type="text"
+                        name="caller_name"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
+                        required
+                    />
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1"
+                        >Phone Number</label
+                    >
+                    <input
+                        type="tel"
+                        name="caller_number"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
+                    />
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm text-slate-400 mb-1"
+                    >Transcription</label
+                >
+                <textarea
+                    name="transcription"
+                    rows="4"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
+                    required
+                ></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm text-slate-400 mb-1"
+                    >Duration (seconds)</label
+                >
+                <input
+                    type="number"
+                    name="duration"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
+                    value="0"
+                />
+            </div>
+            <button
+                type="submit"
+                class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-md"
+            >
+                Log Voicemail
+            </button>
+        </form>
+    </div>
+
+    <!-- Voicemail History -->
+    <div
+        class="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden"
+    >
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-700">
+                <thead class="bg-slate-900">
+                    <tr>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase"
+                        >
+                            Caller
+                        </th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase"
+                        >
+                            Number
+                        </th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase"
+                        >
+                            Transcription
+                        </th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase"
+                        >
+                            Date
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700">
+                    {% if voicemails %} {% for vm in voicemails %}
+                    <tr class="hover:bg-slate-750 transition-colors">
+                        <td class="px-6 py-4 text-sm text-white font-medium">
+                            {{ vm.caller_name }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-300">
+                            {{ vm.caller_number }}
+                        </td>
+                        <td
+                            class="px-6 py-4 text-sm text-slate-300 max-w-md truncate"
+                        >
+                            {{ vm.transcription }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-400">
+                            {{ vm.received_date.strftime('%Y-%m-%d %H:%M') }}
+                        </td>
+                    </tr>
+                    {% endfor %} {% else %}
+                    <tr>
+                        <td
+                            colspan="4"
+                            class="px-6 py-12 text-center text-slate-500"
+                        >
+                            No voicemails yet. Add one above!
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

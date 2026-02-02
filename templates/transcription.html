@@ -1,0 +1,154 @@
+{% extends "base.html" %} {% block content %}
+<div class="max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold mb-6">Transcription Service</h2>
+
+    <!-- Upload Audio -->
+    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700 mb-8">
+        <h3 class="text-lg font-semibold mb-4 text-white">Upload Audio File</h3>
+        <form method="post" enctype="multipart/form-data">
+            <div
+                class="mb-6 p-8 border-2 border-dashed border-slate-700 rounded-lg text-center hover:border-purple-500 transition-colors cursor-pointer"
+                onclick="document.getElementById('audio-input').click()"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="mx-auto h-12 w-12 text-slate-500 mb-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"
+                    />
+                </svg>
+                <p class="text-sm text-slate-400">Click to upload audio file</p>
+                <p class="text-xs text-slate-500 mt-1">
+                    Supports: MP3, WAV, M4A, OGG, FLAC, WMA
+                </p>
+                <input
+                    id="audio-input"
+                    type="file"
+                    name="file"
+                    class="hidden"
+                    accept="audio/*"
+                    onchange="this.form.submit()"
+                />
+            </div>
+            <div class="text-xs text-slate-400 bg-slate-900 p-3 rounded-md">
+                <p class="font-semibold mb-2">✨ How it works:</p>
+                <ul class="space-y-1 text-slate-500">
+                    <li>• Automatically converts your audio to WAV format</li>
+                    <li>
+                        • Uses Google Speech Recognition API for accurate
+                        transcription
+                    </li>
+                    <li>• Works without requiring FFmpeg installation</li>
+                    <li>• Results indexed automatically for RAG search</li>
+                </ul>
+            </div>
+        </form>
+    </div>
+
+    <!-- Transcription Result -->
+    {% if transcribed_text %}
+    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700 mb-8">
+        <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-semibold text-emerald-400">
+                ✅ Transcription Result
+            </h3>
+            {% if audio_duration %}
+            <span class="text-xs bg-slate-700 px-3 py-1 rounded text-slate-300"
+                >Duration: {{ audio_duration }}s</span
+            >
+            {% endif %}
+        </div>
+
+        <div
+            class="bg-slate-900 p-4 rounded-md border border-slate-700 text-slate-200 leading-relaxed max-h-48 overflow-y-auto"
+        >
+            {{ transcribed_text }}
+        </div>
+
+        <div class="mt-4 flex gap-3 flex-wrap">
+            <button
+                onclick="copyToClipboard()"
+                class="text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md transition-colors flex items-center"
+            >
+                <i class="fas fa-copy mr-2"></i> Copy Text
+            </button>
+            <form method="POST" action="/chat" class="inline">
+                <input type="hidden" name="action" value="remember" />
+                <input
+                    type="hidden"
+                    name="mem_title"
+                    value="Audio Transcription"
+                />
+                <input
+                    type="hidden"
+                    name="mem_content"
+                    value="{{ transcribed_text }}"
+                />
+                <button
+                    type="submit"
+                    class="text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md transition-colors flex items-center"
+                >
+                    <i class="fas fa-bookmark mr-2"></i> Save to Memory
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Features -->
+    <div class="bg-slate-800 rounded-lg border border-slate-700 p-6">
+        <h3 class="text-lg font-semibold text-white mb-4">
+            Supported Audio Formats
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="bg-slate-900 p-3 rounded text-center">
+                <p class="text-sm font-semibold text-blue-400">MP3</p>
+                <p class="text-xs text-slate-500">MPEG Audio</p>
+            </div>
+            <div class="bg-slate-900 p-3 rounded text-center">
+                <p class="text-sm font-semibold text-blue-400">WAV</p>
+                <p class="text-xs text-slate-500">Uncompressed</p>
+            </div>
+            <div class="bg-slate-900 p-3 rounded text-center">
+                <p class="text-sm font-semibold text-blue-400">M4A</p>
+                <p class="text-xs text-slate-500">iTunes Format</p>
+            </div>
+            <div class="bg-slate-900 p-3 rounded text-center">
+                <p class="text-sm font-semibold text-blue-400">OGG</p>
+                <p class="text-xs text-slate-500">Open Format</p>
+            </div>
+            <div class="bg-slate-900 p-3 rounded text-center">
+                <p class="text-sm font-semibold text-blue-400">FLAC</p>
+                <p class="text-xs text-slate-500">Lossless</p>
+            </div>
+            <div class="bg-slate-900 p-3 rounded text-center">
+                <p class="text-sm font-semibold text-blue-400">WMA</p>
+                <p class="text-xs text-slate-500">Windows Audio</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyToClipboard() {
+        const text = document.querySelector(".bg-slate-900.p-4")?.innerText;
+        if (text) {
+            navigator.clipboard
+                .writeText(text)
+                .then(() => {
+                    alert("✅ Transcription copied to clipboard!");
+                })
+                .catch(() => {
+                    alert("❌ Failed to copy");
+                });
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %} {% block content %}
+<div class="max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold mb-6">Voice Assistant</h2>
+
+    <div class="bg-slate-800 rounded-lg p-8 border border-slate-700 mb-8">
+        <h3 class="text-lg font-semibold mb-6 text-white text-center">
+            🎤 Voice Commands
+        </h3>
+
+        <form method="post" class="mb-8">
+            <input type="hidden" name="action" value="command" />
+            <div class="mb-4">
+                <label class="block text-sm text-slate-400 mb-2"
+                    >Voice Command</label
+                >
+                <textarea
+                    name="command"
+                    rows="3"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-3 text-white"
+                    placeholder="e.g., Schedule a meeting with John tomorrow at 2pm"
+                    required
+                ></textarea>
+            </div>
+            <button
+                type="submit"
+                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center text-lg transition-all"
+            >
+                <i class="fas fa-microphone mr-3"></i>
+                Execute Command
+            </button>
+        </form>
+
+        {% if response_text %}
+        <div
+            class="bg-purple-900/30 rounded-lg p-6 border border-purple-700/50"
+        >
+            <h4 class="text-white font-semibold mb-3">Response:</h4>
+            <div class="text-slate-200 leading-relaxed">
+                {{ response_text | replace('\n', '<br />') | safe }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700">
+        <h4 class="text-white font-semibold mb-4">Available Commands</h4>
+        <div
+            class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-300"
+        >
+            <div>
+                <p class="font-semibold text-white mb-2">📅 Scheduling</p>
+                <ul class="space-y-1 text-xs">
+                    <li>• "Schedule a meeting..."</li>
+                    <li>• "What's on my calendar?"</li>
+                    <li>• "Remind me to..."</li>
+                </ul>
+            </div>
+            <div>
+                <p class="font-semibold text-white mb-2">📧 Communication</p>
+                <ul class="space-y-1 text-xs">
+                    <li>• "Send email to..."</li>
+                    <li>• "Call..."</li>
+                    <li>• "Check my messages"</li>
+                </ul>
+            </div>
+            <div>
+                <p class="font-semibold text-white mb-2">📋 Tasks</p>
+                <ul class="space-y-1 text-xs">
+                    <li>• "Add task..."</li>
+                    <li>• "Mark complete..."</li>
+                    <li>• "Show pending tasks"</li>
+                </ul>
+            </div>
+            <div>
+                <p class="font-semibold text-white mb-2">💡 Information</p>
+                <ul class="space-y-1 text-xs">
+                    <li>• "Who called me?"</li>
+                    <li>• "Show expense report"</li>
+                    <li>• "Search documents"</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

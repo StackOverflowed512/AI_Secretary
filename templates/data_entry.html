@@ -1,0 +1,52 @@
+{% extends "base.html" %} {% block content %}
+<div class="max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold mb-6">Data Entry Automation</h2>
+
+    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700 mb-8">
+        <h3 class="text-lg font-semibold mb-4 text-white">
+            Automate Form Filling
+        </h3>
+        <form method="post">
+            <div class="mb-4">
+                <label class="block text-sm text-slate-400 mb-1"
+                    >Form Data (JSON or CSV)</label
+                >
+                <textarea
+                    name="form_data"
+                    rows="6"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white font-mono text-sm"
+                    placeholder='{"field1": "value1", "field2": "value2"}'
+                    required
+                ></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm text-slate-400 mb-1"
+                    >Target System/Database</label
+                >
+                <input
+                    type="text"
+                    name="target"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
+                    placeholder="e.g., CRM, Database, etc."
+                />
+            </div>
+            <button
+                type="submit"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-md"
+            >
+                Start Automation
+            </button>
+        </form>
+    </div>
+
+    <div class="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
+        <h4 class="text-white font-semibold mb-3">How It Works</h4>
+        <ul class="text-slate-400 space-y-2 text-sm">
+            <li>✓ Parse structured data from various formats</li>
+            <li>✓ Map fields to target system automatically</li>
+            <li>✓ Validate and clean data before entry</li>
+            <li>✓ Handle bulk operations efficiently</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

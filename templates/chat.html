@@ -11,7 +11,7 @@
                 <label for="query" class="block text-sm font-medium text-slate-300 mb-2">Your Question</label>
                 <textarea name="query" id="query" rows="3"
                     class="w-full bg-slate-900 border border-slate-600 rounded-md p-3 text-white focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="e.g., What was the decision on the marketing budget?">{{ query or '' }}</textarea>
+                    placeholder="e.g., Who called me today? What expenses did I have last week? When is my next meeting?">{{ query or '' }}</textarea>
             </div>
 
             <div class="mb-6">
@@ -25,6 +25,12 @@
                     <option value="decision">Decisions</option>
                     <option value="contact">Contacts</option>
                     <option value="travel">Travel</option>
+                    <option value="call_log">Call Logs</option>
+                    <option value="message">Messages</option>
+                    <option value="voicemail">Voicemails</option>
+                    <option value="calendar_event">Calendar Events</option>
+                    <option value="expense">Expenses</option>
+                    <option value="task">Tasks</option>
                 </select>
             </div>
 
