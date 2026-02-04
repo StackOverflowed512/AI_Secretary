@@ -114,3 +114,26 @@ def send_email_smtp(host, port, user, password, to_addr, subject, body):
         return "✅ Email sent."
     except Exception as e:
         return f"❌ Email send failed: {e}"
+
+def get_mail_stats(host, port, user, password):
+    if not user or not password:
+        return {"unread": 0, "total": 0, "error": "Creds missing"}
+    
+    try:
+        M = imaplib.IMAP4_SSL(host, port)
+        M.login(user, password)
+        M.select("INBOX")
+        
+        # Unread
+        typ, data = M.search(None, '(UNSEEN)')
+        unread = len(data[0].split()) if data[0] else 0
+        
+        # Total
+        typ, data = M.search(None, 'ALL')
+        total = len(data[0].split()) if data[0] else 0
+        
+        M.logout()
+        return {"unread": unread, "total": total, "error": None}
+    except Exception as e:
+        return {"unread": 0, "total": 0, "error": str(e)}
+

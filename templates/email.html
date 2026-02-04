@@ -1,79 +1,213 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-8">
+<div class="flex flex-col h-[calc(100vh-6rem)] -mt-4 -ml-4 -mr-4 md:-mt-8 md:-ml-8 md:-mr-8">
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Account Sidebar (Left) -->
+        <div class="w-20 md:w-64 bg-slate-100 border-r border-slate-200 flex flex-col">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-700 hidden md:block">Accounts</h3>
+                <button onclick="document.getElementById('add-account-modal').classList.remove('hidden')" class="text-indigo-600 hover:bg-slate-200 rounded p-1">
+                    <i class="fas fa-plus-circle text-xl"></i>
+                </button>
+            </div>
+            <div class="overflow-y-auto flex-1 p-2 space-y-2">
+                {% for acc in accounts %}
+                <a href="/email?account_id={{ acc.id }}" 
+                   class="block p-3 rounded-lg transition {{ 'bg-white shadow-sm border border-slate-200' if active_account and active_account.id == acc.id else 'hover:bg-slate-200 text-slate-600' }}">
+                    <div class="flex items-center">
+                        <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold shrink-0">
+                            {{ acc.email[0].upper() }}
+                        </div>
+                        <div class="ml-3 hidden md:block overflow-hidden flex-1">
+                            <p class="text-sm font-medium truncate text-slate-800">{{ acc.email }}</p>
+                            <p class="text-xs text-slate-500">{{ acc.provider }}</p>
+                        </div>
+                        {% if account_stats and account_stats[acc.id] and account_stats[acc.id].unread > 0 %}
+                        <span class="ml-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-sm">{{ account_stats[acc.id].unread }}</span>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
 
-    <!-- Credentials Section -->
-    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700">
-        <h2 class="text-xl font-bold mb-4 flex items-center">
-            <span class="mr-2">🔐</span> Email Settings
-        </h2>
-        <form method="post">
-            <input type="hidden" name="save_creds" value="1">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-sm text-slate-400 mb-1">Email (Gmail)</label>
-                    <input type="text" name="email_user" value="{{ email_user }}"
-                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white">
+        <!-- Email List (Middle) -->
+        <div class="w-80 md:w-96 bg-white border-r border-slate-200 flex flex-col">
+            <div class="p-4 border-b border-slate-200 bg-white">
+                <h3 class="font-bold text-slate-800 mb-1">Inbox</h3>
+                <div class="flex space-x-2">
+                    <form action="/email" method="post" class="flex-1 flex">
+                        <input type="hidden" name="account_id" value="{{ active_account.id if active_account else '' }}">
+                        <input type="hidden" name="fetch" value="true">
+                        <button type="submit" class="text-xs flex items-center justify-center px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-600 w-full" {{ 'disabled' if not active_account }}>
+                            <i class="fas fa-sync-alt mr-1"></i> Refresh
+                        </button>
+                    </form>
                 </div>
-                <div>
-                    <label class="block text-sm text-slate-400 mb-1">App Password</label>
-                    <input type="password" name="email_pass"
-                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
-                        placeholder="••••••••">
+            </div>
+            
+            <div class="overflow-y-auto flex-1">
+                {% if emails %}
+                    {% for email in emails %}
+                    <a href="/email?account_id={{ active_account.id }}&email_idx={{ loop.index0 }}" 
+                       class="block p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer {{ 'bg-indigo-50 border-indigo-100' if active_email_idx == loop.index0 }}">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="font-semibold text-slate-800 text-sm truncate w-2/3">{{ email.from }}</span>
+                            <span class="text-xs text-slate-400">{{ email.date[:16] }}</span>
+                        </div>
+                        <p class="text-sm font-medium text-slate-700 truncate">{{ email.subject }}</p>
+                        <p class="text-xs text-slate-500 line-clamp-2 mt-1">{{ email.body[:100] }}...</p>
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="p-8 text-center text-slate-400">
+                        <i class="fas fa-inbox text-4xl mb-2"></i>
+                        <p>No emails loaded.</p>
+                        <p class="text-xs">Select an account and click Refresh.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Reading Pane (Right) -->
+        <div class="flex-1 bg-slate-50 flex flex-col overflow-hidden">
+            {% if active_email %}
+            <div class="flex-1 overflow-y-auto p-6">
+                <!-- Header -->
+                <div class="mb-6 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <h2 class="text-xl font-bold text-slate-900 mb-2">{{ active_email.subject }}</h2>
+                    <div class="flex justify-between items-center text-sm">
+                        <div class="text-slate-600">
+                            <span class="font-medium">From:</span> {{ active_email.from }}
+                        </div>
+                        <div class="text-slate-500">
+                            {{ active_email.date }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="prose max-w-none text-slate-800 mb-8 bg-white p-6 rounded-xl shadow-sm border border-slate-100 min-h-[200px] whitespace-pre-wrap font-sans">{{ active_email.body }}</div>
+
+                <!-- Reply / AI Draft -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide mb-3 flex items-center">
+                        <i class="fas fa-magic mr-2 text-indigo-500"></i> AI Reply Assistant
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Drafting Instruction (Optional)</label>
+                            <input type="text" id="draft-prompt" placeholder="e.g. Agree to the meeting but ask for 2 PM" class="w-full text-sm p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="generateDraft()" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded text-sm font-medium hover:bg-indigo-200 transition">
+                                <i class="fas fa-robot mr-1"></i> Generate Draft
+                            </button>
+                            <button onclick="document.getElementById('draft-area').value=''" class="text-slate-400 px-3 py-2 text-sm hover:text-slate-600">Clear</button>
+                        </div>
+                        
+                        <form action="/email" method="post" id="send-form">
+                            <textarea id="draft-area" name="body" rows="6" class="w-full p-3 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder-slate-300" placeholder="Draft will appear here..."></textarea>
+                            
+                            <!-- Hidden fields for sending -->
+                            <input type="hidden" name="send" value="true">
+                            <input type="hidden" name="account_id" value="{{ active_account.id }}">
+                            <input type="hidden" name="to" value="{{ active_email.from }}"> <!-- Naive 'to' extraction -->
+                            <input type="hidden" name="subject" value="Re: {{ active_email.subject }}">
+
+                            <div class="flex justify-end pt-3">
+                                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-md transition flex items-center">
+                                    <i class="fas fa-paper-plane mr-2"></i> Send Reply
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
-            <button type="submit" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-md text-sm">Save
-                Credentials Temporarily</button>
-        </form>
+            {% else %}
+            <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
+                <i class="fas fa-envelope-open text-6xl mb-4 text-slate-200"></i>
+                <p>Select an email to read</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
-
-    <!-- Fetch Section -->
-    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700">
-        <h2 class="text-xl font-bold mb-4 flex items-center">
-            <span class="mr-2">📥</span> Fetch & Index Emails
-        </h2>
-        <form method="post" class="flex items-end gap-4">
-            <input type="hidden" name="fetch" value="1">
-            <div class="flex-grow">
-                <label class="block text-sm text-slate-400 mb-1">Number of emails to fetch</label>
-                <input type="number" name="limit" value="50" min="1" max="200"
-                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white">
-            </div>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md">
-                Fetch Emails
-            </button>
-        </form>
-        <p class="text-xs text-slate-500 mt-2">Fetches only new emails from Inbox and indexes them for RAG.</p>
-    </div>
-
-    <!-- Send Section -->
-    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700">
-        <h2 class="text-xl font-bold mb-4 flex items-center">
-            <span class="mr-2">📤</span> Send Email
-        </h2>
-        <form method="post">
-            <input type="hidden" name="send" value="1">
-            <div class="mb-3">
-                <label class="block text-sm text-slate-400 mb-1">To</label>
-                <input type="email" name="to"
-                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white" required>
-            </div>
-            <div class="mb-3">
-                <label class="block text-sm text-slate-400 mb-1">Subject</label>
-                <input type="text" name="subject"
-                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white" required>
-            </div>
-            <div class="mb-4">
-                <label class="block text-sm text-slate-400 mb-1">Body</label>
-                <textarea name="body" rows="5"
-                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white" required></textarea>
-            </div>
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-md">
-                Send Email
-            </button>
-        </form>
-    </div>
-
 </div>
+
+<!-- Add Account Modal -->
+<div id="add-account-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 m-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-slate-800">Add Email Account</h3>
+            <button onclick="document.getElementById('add-account-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form action="/email" method="post" class="space-y-4">
+            <input type="hidden" name="add_account" value="true">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                <input type="email" name="email" required class="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">App Password</label>
+                <input type="password" name="password" required class="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500">
+                <p class="text-xs text-slate-500 mt-1">Use an App Password for Gmail/Outlook.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Provider</label>
+                    <select name="provider" class="w-full p-2 border border-slate-300 rounded">
+                        <option value="gmail">Gmail</option>
+                        <option value="outlook">Outlook</option>
+                        <option value="custom">Custom (IMAP)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end pt-4">
+                <button type="button" onclick="document.getElementById('add-account-modal').classList.add('hidden')" class="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded mr-2">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-medium rounded hover:bg-indigo-700 shadow">Save Account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+async function generateDraft() {
+    const prompt = document.getElementById('draft-prompt').value;
+    const emailMeta = {
+        subject: {{ (active_email['subject'] | tojson) if active_email else '' | tojson }},
+        sender: {{ (active_email['from'] | tojson) if active_email else '' | tojson }},
+        body: {{ ((active_email['body'] or '')[:500] | tojson) if active_email else '' | tojson }}
+    };
+
+    const btn = event.currentTarget;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Drafting...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/draft_email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, email: emailMeta })
+        });
+        const data = await response.json();
+        if (data.draft) {
+            document.getElementById('draft-area').value = data.draft;
+        } else {
+            alert('Could not generate draft');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Error generating draft');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+</script>
 {% endblock %}

@@ -1,126 +1,250 @@
-{% extends "base.html" %} {% block content %}
-<div class="max-w-4xl mx-auto">
-    <h2 class="text-2xl font-bold mb-6">Voicemail Processing</h2>
+{% extends "base.html" %}
 
-    <!-- Log Voicemail -->
-    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700 mb-8">
-        <h3 class="text-lg font-semibold mb-4 text-white">Log Voicemail</h3>
-        <form method="post">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-sm text-slate-400 mb-1"
-                        >Caller Name</label
-                    >
-                    <input
-                        type="text"
-                        name="caller_name"
-                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
-                        required
-                    />
-                </div>
-                <div>
-                    <label class="block text-sm text-slate-400 mb-1"
-                        >Phone Number</label
-                    >
-                    <input
-                        type="tel"
-                        name="caller_number"
-                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
-                    />
-                </div>
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8">
+    
+    <!-- Top Section: Player and Action -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-800">Voicemail Center</h2>
+                <p class="text-sm text-slate-500">Processing {{ voicemails|length }} messages</p>
             </div>
-            <div class="mb-4">
-                <label class="block text-sm text-slate-400 mb-1"
-                    >Transcription</label
-                >
-                <textarea
-                    name="transcription"
-                    rows="4"
-                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
-                    required
-                ></textarea>
-            </div>
-            <div class="mb-4">
-                <label class="block text-sm text-slate-400 mb-1"
-                    >Duration (seconds)</label
-                >
-                <input
-                    type="number"
-                    name="duration"
-                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-white"
-                    value="0"
-                />
-            </div>
-            <button
-                type="submit"
-                class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-md"
-            >
-                Log Voicemail
+            <button onclick="document.getElementById('upload-modal').classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition shadow-lg shadow-indigo-200 flex items-center">
+                <i class="fas fa-upload mr-2"></i> Upload Audio
             </button>
-        </form>
-    </div>
+        </div>
 
-    <!-- Voicemail History -->
-    <div
-        class="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden"
-    >
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-700">
-                <thead class="bg-slate-900">
-                    <tr>
-                        <th
-                            class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase"
-                        >
-                            Caller
-                        </th>
-                        <th
-                            class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase"
-                        >
-                            Number
-                        </th>
-                        <th
-                            class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase"
-                        >
-                            Transcription
-                        </th>
-                        <th
-                            class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase"
-                        >
-                            Date
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-700">
-                    {% if voicemails %} {% for vm in voicemails %}
-                    <tr class="hover:bg-slate-750 transition-colors">
-                        <td class="px-6 py-4 text-sm text-white font-medium">
-                            {{ vm.caller_name }}
-                        </td>
-                        <td class="px-6 py-4 text-sm text-slate-300">
-                            {{ vm.caller_number }}
-                        </td>
-                        <td
-                            class="px-6 py-4 text-sm text-slate-300 max-w-md truncate"
-                        >
-                            {{ vm.transcription }}
-                        </td>
-                        <td class="px-6 py-4 text-sm text-slate-400">
-                            {{ vm.received_date.strftime('%Y-%m-%d %H:%M') }}
-                        </td>
-                    </tr>
-                    {% endfor %} {% else %}
-                    <tr>
-                        <td
-                            colspan="4"
-                            class="px-6 py-12 text-center text-slate-500"
-                        >
-                            No voicemails yet. Add one above!
-                        </td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+        <div class="p-0">
+            {% if voicemails %}
+            <div class="divide-y divide-slate-100">
+                {% for vm in voicemails %}
+                <div class="p-6 hover:bg-slate-50 transition group">
+                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        
+                        <!-- Info -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center mb-1">
+                                <span class="h-8 w-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mr-3 font-bold text-sm">
+                                    {{ vm.caller_name[0] | upper }}
+                                </span>
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-900 leading-tight">{{ vm.caller_name }}</h3>
+                                    <p class="text-xs text-slate-500">{{ vm.caller_number }} • {{ vm.received_date.strftime('%b %d, %I:%M %p') }}</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Transcript Preview -->
+                            <div class="mt-3 pl-11">
+                                <div class="bg-slate-100 p-3 rounded-lg text-sm text-slate-700 leading-relaxed border border-slate-200 relative">
+                                    <i class="fas fa-quote-left text-slate-300 absolute -top-2 -left-2 text-xl bg-white rounded-full"></i>
+                                    {{ vm.transcription }}
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="mt-3 pl-11 flex space-x-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                {% set clean_transcript = vm.transcription | replace("'", "\\'") %}
+                                <button onclick="draftReply('{{ vm.id }}', '{{ clean_transcript }}', '{{ vm.caller_name }}')" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-full transition">
+                                    <i class="fas fa-pen-fancy mr-1.5"></i> Draft Reply
+                                </button>
+                                <button class="text-xs font-medium text-slate-500 hover:text-slate-700 flex items-center bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-full transition">
+                                    <i class="fas fa-trash mr-1.5"></i> Archive
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Draft / Reply Zone (Hidden by default, toggled via JS) -->
+                        <div id="draft-zone-{{ vm.id }}" class="hidden w-full md:w-1/2 bg-white border border-indigo-100 rounded-xl shadow-sm p-4 mt-4 md:mt-0 relative animate-fade-in-down">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="text-sm font-bold text-indigo-900">Reply to Voicemail</h4>
+                                <button onclick="this.parentElement.parentElement.classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+
+                            <form action="/email" method="post" class="space-y-3">
+                                <input type="hidden" name="send" value="true">
+                                <input type="hidden" name="subject" value="Re: Voicemail from {{ vm.caller_name }}">
+                                
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <select name="account_id" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-indigo-500">
+                                            {% if accounts %}
+                                                {% for acc in accounts %}
+                                                <option value="{{ acc.id }}">{{ acc.email }}</option>
+                                                {% endfor %}
+                                            {% else %}
+                                                <option value="">No Accounts</option>
+                                            {% endif %}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <input type="text" name="to" placeholder="Recipient Email" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+
+                                <div class="relative">
+                                    <textarea id="draft-text-{{ vm.id }}" name="body" class="w-full text-sm p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none font-sans" rows="6" placeholder="Draft your reply..."></textarea>
+                                    <button type="button" onclick="toggleDictation('draft-text-{{ vm.id }}', this)" class="absolute bottom-2 right-2 text-slate-400 hover:text-indigo-600 p-2 rounded-full hover:bg-slate-200 transition" title="Dictate Reply">
+                                        <i class="fas fa-microphone"></i>
+                                    </button>
+                                </div>
+
+                                <div class="flex justify-end">
+                                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded-lg font-medium shadow-sm flex items-center">
+                                        <i class="fas fa-paper-plane mr-1.5"></i> Send Email
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-12 text-center text-slate-400">
+                <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-voicemail text-3xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-slate-900">No new voicemails</h3>
+                <p class="text-sm mt-1">Check back later or upload a recording.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm transition-opacity">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full m-4 transform scale-100 transition-transform">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-slate-800">Upload Voicemail</h3>
+            <button onclick="document.getElementById('upload-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        
+        <form method="post" enctype="multipart/form-data" class="space-y-5">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Caller Info</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" name="caller_name" placeholder="Name" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                    <input type="text" name="caller_number" placeholder="Number" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                </div>
+            </div>
+
+            <div>
+                 <label class="block text-sm font-medium text-slate-700 mb-2">Audio File / Transcript</label>
+                 <!-- For demo, we just take text, but in real app this would be a file input + Whisper API -->
+                 <textarea name="transcription" rows="4" placeholder="Paste transcript or type message..." class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm"></textarea>
+            </div>
+
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-indigo-200 transition">
+                Process Recording
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+async function draftReply(id, transcription, name) {
+    const zone = document.getElementById(`draft-zone-${id}`);
+    const textArea = document.getElementById(`draft-text-${id}`);
+    zone.classList.remove('hidden');
+    
+    textArea.value = "Generating smart response...";
+    
+    // Call API for AI Draft
+    try {
+        const response = await fetch('/api/draft_email', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ 
+                 prompt: "Reply to this voicemail politely and professionally. Suggest a follow-up call.", 
+                 email: { 
+                     subject: "Voicemail Reply", 
+                     sender: name, 
+                     body: transcription 
+                 } 
+             })
+        });
+        const data = await response.json();
+        textArea.value = data.draft || "Could not generate draft.";
+    } catch (e) {
+        console.error(e);
+        textArea.value = "Error generating draft.";
+    }
+}
+
+// Voice Dictation Logic
+let recognition;
+
+function toggleDictation(targetId, btn) {
+    if (!('webkitSpeechRecognition' in window)) {
+        alert("Web Speech API not supported in this browser. Try Chrome/Edge.");
+        return;
+    }
+
+    const textArea = document.getElementById(targetId);
+
+    if (recognition && recognition.started) {
+        recognition.stop();
+        // UI reset handled in onend
+        return;
+    }
+
+    recognition = new webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = function() {
+        recognition.started = true;
+        btn.classList.remove('text-slate-400');
+        btn.classList.add('text-red-600', 'animate-pulse');
+    };
+
+    recognition.onresult = function(event) {
+        let final = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                final += event.results[i][0].transcript;
+            }
+        }
+        if (final) {
+            // Append to textarea (with check for spacing)
+            const val = textArea.value;
+            textArea.value = val + (val && !val.endsWith(' ') ? ' ' : '') + final;
+        }
+    };
+
+    recognition.onerror = function(event) {
+        console.error("Speech Error:", event.error);
+        if (event.error === 'not-allowed') {
+            alert("Microphone access denied.");
+        }
+        recognition.stop(); 
+    };
+    
+    recognition.onend = function() {
+        recognition.started = false;
+        btn.classList.remove('text-red-600', 'animate-pulse');
+        btn.classList.add('text-slate-400');
+    };
+
+    recognition.start();
+}
+</script>
+
+<style>
+    @keyframes fade-in-down {
+        0% { opacity: 0; transform: translateY(-10px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-down {
+        animation: fade-in-down 0.3s ease-out;
+    }
+</style>
 {% endblock %}

@@ -78,16 +78,7 @@ class Message(Base):
     message_date = Column(DateTime)
     read = Column(Boolean, default=False)
 
-class VoicemailLog(Base):
-    __tablename__ = "voicemails"
-    id = Column(Integer, primary_key=True)
-    caller_name = Column(String)
-    caller_number = Column(String)
-    transcription = Column(Text)
-    audio_path = Column(String)
-    duration = Column(Integer)
-    received_date = Column(DateTime)
-    status = Column(String, default="Unread")
+
 
 class CalendarEvent(Base):
     __tablename__ = "calendar_events"
@@ -110,4 +101,26 @@ def init_db(db_path):
     engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+class Voicemail(Base):
+    __tablename__ = "voicemails"
+    id = Column(Integer, primary_key=True)
+    caller_name = Column(String)
+    caller_number = Column(String)
+    transcription = Column(Text)
+    audio_path = Column(String, nullable=True)
+    duration = Column(Integer, default=0)
+    received_date = Column(DateTime, default=datetime.utcnow)
+    is_read = Column(Boolean, default=False)
+
+class EmailAccount(Base):
+    __tablename__ = "email_accounts"
+    id = Column(Integer, primary_key=True)
+    email = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False) # In production, encrypt this
+    imap_host = Column(String, default="imap.gmail.com")
+    imap_port = Column(Integer, default=993)
+    smtp_host = Column(String, default="smtp.gmail.com")
+    smtp_port = Column(Integer, default=587)
+    provider = Column(String, default="gmail") # gmail, outlook, etc.
 

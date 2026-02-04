@@ -65,7 +65,7 @@ def index():
     pending_tasks = db.query(models.Task).filter(models.Task.status == "Pending").count()
     
     # Total voicemails received
-    total_voicemails = db.query(models.VoicemailLog).count()
+    total_voicemails = db.query(models.Voicemail).count()
     
     # Total call logs
     total_calls = db.query(models.CallLog).count()
@@ -101,43 +101,155 @@ def index():
                           recent_logs=recent_logs,
                           task_dist=task_dist)
 
+
+FETCHED_EMAILS = {}
+
 @app.route('/email', methods=['GET', 'POST'])
 def email_page():
-    global EMAIL_CONFIG
+    db = SessionLocal()
+    accounts = db.query(models.EmailAccount).all()
+    
+    account_id = request.args.get('account_id') or request.form.get('account_id')
+    active_account = None
+    if account_id:
+        active_account = db.query(models.EmailAccount).filter(models.EmailAccount.id == int(account_id)).first()
+    elif accounts:
+        active_account = accounts[0]
+    
     if request.method == 'POST':
-        if 'save_creds' in request.form:
-            EMAIL_CONFIG['user'] = request.form.get('email_user')
-            EMAIL_CONFIG['pass'] = request.form.get('email_pass')
-            flash("Email credentials saved temporarily.", "success")
-        elif 'fetch' in request.form:
-            limit = int(request.form.get('limit', 50))
+        if 'add_account' in request.form:
+            email = request.form.get('email')
+            password = request.form.get('password')
+            provider = request.form.get('provider')
+            
+            # Simple provider defaults
+            imap_host = "imap.gmail.com"
+            smtp_host = "smtp.gmail.com"
+            if provider == 'outlook':
+                imap_host = "outlook.office365.com"
+                smtp_host = "smtp.office365.com"
+            
+            # Create account
+            try:
+                acc = models.EmailAccount(
+                    email=email, password=password, provider=provider,
+                    imap_host=imap_host, smtp_host=smtp_host
+                )
+                db.add(acc)
+                db.commit()
+                flash("Account added successfully.", "success")
+                return redirect(url_for('email_page', account_id=acc.id))
+            except Exception as e:
+                flash(f"Error adding account: {e}", "danger")
+                
+        elif 'fetch' in request.form and active_account:
+            limit = int(request.form.get('limit', 20))
             emails, err = email_utils.fetch_emails(
-                EMAIL_CONFIG['host_imap'], EMAIL_CONFIG['port_imap'],
-                EMAIL_CONFIG['user'], EMAIL_CONFIG['pass'], limit
+                active_account.imap_host, active_account.imap_port,
+                active_account.email, active_account.password, limit
             )
             if err:
                 flash(f"Error fetching emails: {err}", "danger")
             else:
-                # Index them
-                count = 0
-                for e in emails:
-                    title = f"{e['subject']} — {e['from']}"
-                    meta = {"email_from": e['from'], "email_date": e['date']}
-                    full_text = f"Subject: {e['subject']}\nFrom: {e['from']}\nDate: {e['date']}\n\n{e['body']}"
-                    rag_utils.index_into_memory("email", title, full_text, extra_meta=meta)
-                    count += 1
-                flash(f"Fetched and indexed {count} emails.", "success")
+                FETCHED_EMAILS[active_account.id] = emails
+                # Update stats for this account immediately
+                stats = email_utils.get_mail_stats(active_account.imap_host, active_account.imap_port, active_account.email, active_account.password)
+                
         elif 'send' in request.form:
-            to = request.form.get('to')
-            subject = request.form.get('subject')
-            body = request.form.get('body')
-            res = email_utils.send_email_smtp(
-                EMAIL_CONFIG['host_smtp'], EMAIL_CONFIG['port_smtp'],
-                EMAIL_CONFIG['user'], EMAIL_CONFIG['pass'], to, subject, body
-            )
-            flash(res, "info")
+            account_id_send = request.form.get('account_id')
+            if not account_id_send:
+                # Default to first account if not specified
+                acc_send = accounts[0] if accounts else None
+            else:
+                acc_send = db.query(models.EmailAccount).get(int(account_id_send))
             
-    return render_template('email.html', email_user=EMAIL_CONFIG['user'])
+            if acc_send:
+                to = request.form.get('to')
+                subject = request.form.get('subject')
+                body = request.form.get('body')
+                res = email_utils.send_email_smtp(
+                    acc_send.smtp_host, acc_send.smtp_port,
+                    acc_send.email, acc_send.password, to, subject, body
+                )
+                flash(res, "info" if "✅" in res else "danger")
+            else:
+                flash("No email account configured to send from.", "danger")
+            
+            # Redirect back to where we came from (e.g. voicemail)
+            if request.headers.get('Referer'):
+                return redirect(request.headers.get('Referer'))
+
+    # Get stats for all accounts (for sidebar)
+    account_stats = {}
+    for acc in accounts:
+        # Optimized: Only fetch if we don't have recent stats or for active account? 
+        # For now, fetch live. If slow, user can comment out.
+        stats = email_utils.get_mail_stats(acc.imap_host, acc.imap_port, acc.email, acc.password)
+        account_stats[acc.id] = stats
+
+    # Get emails for view
+    emails = []
+    if active_account:
+        emails = FETCHED_EMAILS.get(active_account.id, [])
+        
+    active_email = None
+    email_idx = request.args.get('email_idx')
+    if email_idx is not None and emails:
+        try:
+            active_email = emails[int(email_idx)]
+        except:
+            pass
+
+    db.close()
+    return render_template('email.html', accounts=accounts, active_account=active_account, emails=emails, active_email=active_email, active_email_idx=int(email_idx) if email_idx is not None else None, account_stats=account_stats)
+
+@app.route('/api/draft_email', methods=['POST'])
+def draft_email_api():
+    data = request.json
+    prompt = data.get('prompt', '')
+    email_meta = data.get('email', {})
+    
+    system_prompt = "You are an intelligent email assistant. Draft a professional email response."
+    user_content = f"Instructions: {prompt}\n\nContext:\nSubject: {email_meta.get('subject')}\nFrom: {email_meta.get('sender')}\nBody Snippet: {email_meta.get('body')}"
+    
+    msgs = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_content}
+    ]
+    
+    draft = rag_utils.safe_call_llm(msgs, max_new_tokens=300)
+    return jsonify({'draft': draft})
+
+@app.route('/voicemail', methods=['GET', 'POST'])
+def voicemail():
+    db = SessionLocal()
+    if request.method == 'POST':
+        caller_name = request.form.get('caller_name', 'Unknown')
+        caller_number = request.form.get('caller_number', '')
+        transcription = request.form.get('transcription', '')
+        duration = request.form.get('duration', 0)
+        
+        vm = models.Voicemail(
+            caller_name=caller_name,
+            caller_number=caller_number,
+            transcription=transcription,
+            duration=int(duration)
+        )
+        db.add(vm)
+        db.commit()
+        db.refresh(vm)
+        
+        # Index to RAG
+        vm_text = f"Voicemail from {caller_name}:\nPhone: {caller_number}\nDuration: {duration} seconds\n\nTranscription:\n{transcription}"
+        rag_utils.index_into_memory("voicemail", f"VM from {caller_name}", vm_text, extra_meta={"caller": caller_name, "caller_number": caller_number, "duration": duration})
+        
+        flash("Voicemail logged and indexed.", "success")
+        return redirect(url_for('voicemail'))
+    
+    voicemails = db.query(models.Voicemail).order_by(models.Voicemail.received_date.desc()).all()
+    accounts = db.query(models.EmailAccount).all()
+    db.close()
+    return render_template('voicemail.html', voicemails=voicemails, accounts=accounts)
 
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
@@ -379,28 +491,7 @@ def messages():
     db.close()
     return render_template('messages.html', messages=message_list)
 
-@app.route('/voicemail', methods=['GET', 'POST'])
-def voicemail():
-    db = SessionLocal()
-    if request.method == 'POST':
-        caller_name = request.form.get('caller_name')
-        caller_number = request.form.get('caller_number')
-        transcription = request.form.get('transcription')
-        duration = request.form.get('duration', 0)
-        vm = models.VoicemailLog(caller_name=caller_name, caller_number=caller_number, transcription=transcription, duration=int(duration), received_date=datetime.now())
-        db.add(vm)
-        db.commit()
-        db.refresh(vm)
-        
-        # Index to RAG
-        vm_text = f"Voicemail from {caller_name}:\nPhone: {caller_number}\nDuration: {duration} seconds\n\nTranscription:\n{transcription}"
-        rag_utils.index_into_memory("voicemail", f"VM from {caller_name}", vm_text, extra_meta={"caller": caller_name, "caller_number": caller_number, "duration": duration})
-        
-        flash("Voicemail logged and indexed.", "success")
-    
-    voicemails = db.query(models.VoicemailLog).order_by(models.VoicemailLog.received_date.desc()).limit(20).all()
-    db.close()
-    return render_template('voicemail.html', voicemails=voicemails)
+
 
 @app.route('/calendar', methods=['GET', 'POST'])
 def calendar():
