@@ -48,9 +48,11 @@
                                 <button onclick="draftReply('{{ vm.id }}', '{{ clean_transcript }}', '{{ vm.caller_name }}')" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-full transition">
                                     <i class="fas fa-pen-fancy mr-1.5"></i> Draft Reply
                                 </button>
-                                <button class="text-xs font-medium text-slate-500 hover:text-slate-700 flex items-center bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-full transition">
-                                    <i class="fas fa-trash mr-1.5"></i> Archive
-                                </button>
+                                <form action="{{ url_for('delete_voicemail', vm_id=vm.id) }}" method="post" class="inline-block" onsubmit="return confirm('Archive this voicemail?');">
+                                    <button type="submit" class="text-xs font-medium text-slate-500 hover:text-red-600 flex items-center bg-white border border-slate-200 hover:bg-red-50 hover:border-red-200 px-3 py-1.5 rounded-full transition">
+                                        <i class="fas fa-archive mr-1.5"></i> Archive
+                                    </button>
+                                </form>
                             </div>
                         </div>
 

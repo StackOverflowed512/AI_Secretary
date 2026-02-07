@@ -7,28 +7,110 @@
             🎤 Voice Commands
         </h3>
 
-        <form method="post" class="mb-8">
+        <form method="post" class="mb-8" id="voice-form">
             <input type="hidden" name="action" value="command" />
             <div class="mb-4">
-                <label class="block text-sm text-slate-400 mb-2"
-                    >Voice Command</label
-                >
-                <textarea
-                    name="command"
-                    rows="3"
-                    class="w-full bg-slate-900 border border-slate-600 rounded-md p-3 text-white"
-                    placeholder="e.g., Schedule a meeting with John tomorrow at 2pm"
-                    required
-                ></textarea>
+                <label class="block text-sm text-slate-400 mb-2">Voice Command</label>
+                <div class="relative">
+                    <textarea
+                        id="voice-input"
+                        name="command"
+                        rows="3"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-md p-3 pr-12 text-white resize-none focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                        placeholder="Click the mic icon and speak, e.g., 'Schedule a meeting with John tomorrow at 2pm'"
+                        required
+                    ></textarea>
+                    <button 
+                        type="button" 
+                        onclick="toggleVoiceInput()"
+                        id="mic-btn"
+                        class="absolute right-3 bottom-3 text-slate-400 hover:text-white p-2 rounded-full transition-colors"
+                        title="Start Voice Input"
+                    >
+                        <i class="fas fa-microphone text-xl"></i>
+                    </button>
+                </div>
+                <p id="listening-status" class="text-xs text-purple-400 mt-2 h-4 hidden">Listening... Speak now.</p>
             </div>
             <button
                 type="submit"
-                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center text-lg transition-all"
+                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center text-lg transition-all shadow-lg hover:shadow-purple-500/30"
             >
-                <i class="fas fa-microphone mr-3"></i>
+                <i class="fas fa-paper-plane mr-3"></i>
                 Execute Command
             </button>
         </form>
+
+        <script>
+            let recognition;
+            
+            function toggleVoiceInput() {
+                const btn = document.getElementById('mic-btn');
+                const status = document.getElementById('listening-status');
+                const input = document.getElementById('voice-input');
+                
+                if (!('webkitSpeechRecognition' in window)) {
+                    alert("Voice input is not supported in this browser. Please use Chrome or Edge.");
+                    return;
+                }
+                
+                if (recognition && recognition.started) {
+                    recognition.stop();
+                    return;
+                }
+                
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+                
+                recognition.onstart = function() {
+                    recognition.started = true;
+                    btn.classList.add('text-red-500', 'animate-pulse');
+                    btn.classList.remove('text-slate-400');
+                    status.classList.remove('hidden');
+                    input.placeholder = "Listening...";
+                };
+                
+                recognition.onresult = function(event) {
+                    let final = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            final += event.results[i][0].transcript;
+                        }
+                    }
+                    if (final) {
+                        input.value = final;
+                        // Optional: Auto-submit
+                        // document.getElementById('voice-form').submit();
+                    }
+                };
+                
+                recognition.onerror = function(event) {
+                    console.error("Speech Error:", event.error);
+                    stopVoice();
+                };
+                
+                recognition.onend = function() {
+                    stopVoice();
+                };
+                
+                recognition.start();
+            }
+            
+            function stopVoice() {
+                const btn = document.getElementById('mic-btn');
+                const status = document.getElementById('listening-status');
+                
+                if (recognition) {
+                    recognition.started = false;
+                }
+                
+                btn.classList.remove('text-red-500', 'animate-pulse');
+                btn.classList.add('text-slate-400');
+                status.classList.add('hidden');
+            }
+        </script>
 
         {% if response_text %}
         <div

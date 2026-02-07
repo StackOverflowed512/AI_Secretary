@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Secretary Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .message-enter {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .pulse-ring {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+            }
+        }
+        
+        .typing-indicator span {
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .chat-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-scroll::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        
+        .chat-scroll::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white h-screen overflow-hidden">
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <div class="gradient-bg px-6 py-4 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <i class="fas fa-robot text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">AI Secretary</h1>
+                        <p class="text-xs text-white/80" id="status-text">Ready to assist</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="clearChat()" class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition backdrop-blur-sm">
+                        <i class="fas fa-trash-alt mr-2"></i>Clear
+                    </button>
+                    <a href="/" class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition backdrop-blur-sm">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto px-6 py-4 space-y-4 chat-scroll">
+            <!-- Welcome Message -->
+            <div class="message-enter">
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-robot text-sm"></i>
+                    </div>
+                    <div class="bg-slate-800 rounded-2xl rounded-tl-none px-4 py-3 max-w-2xl border border-slate-700">
+                        <p class="text-sm text-slate-200">
+                            👋 Hello! I'm your AI Secretary. I can help you with:
+                        </p>
+                        <ul class="text-xs text-slate-400 mt-2 space-y-1 ml-4">
+                            <li>📧 Managing emails and drafting replies</li>
+                            <li>📞 Checking voicemails and call logs</li>
+                            <li>📅 Scheduling meetings and events</li>
+                            <li>✅ Creating and managing tasks</li>
+                            <li>💰 Tracking expenses</li>
+                            <li>👥 Managing contacts</li>
+                            <li>📄 Analyzing documents</li>
+                            <li>🔍 Searching through all your data</li>
+                        </ul>
+                        <p class="text-xs text-slate-400 mt-3">
+                            Try saying: <span class="text-indigo-400 font-medium">"Show me my tasks"</span> or <span class="text-indigo-400 font-medium">"What meetings do I have today?"</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="bg-slate-800 border-t border-slate-700 px-6 py-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-end space-x-3">
+                    <!-- Voice Button -->
+                    <button id="voice-btn" onclick="toggleVoice()" 
+                            class="w-12 h-12 bg-indigo-600 hover:bg-indigo-700 rounded-full flex items-center justify-center transition flex-shrink-0">
+                        <i class="fas fa-microphone text-lg"></i>
+                    </button>
+                    
+                    <!-- Text Input -->
+                    <div class="flex-1 relative">
+                        <textarea id="user-input" 
+                                  placeholder="Type your message or click the microphone to speak..."
+                                  rows="1"
+                                  class="w-full bg-slate-700 border border-slate-600 rounded-2xl px-4 py-3 pr-12 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                                  onkeydown="handleKeyPress(event)"></textarea>
+                        <button onclick="sendMessage()" 
+                                class="absolute right-2 bottom-2 w-8 h-8 bg-indigo-600 hover:bg-indigo-700 rounded-full flex items-center justify-center transition">
+                            <i class="fas fa-paper-plane text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="quickAction('Show my tasks')" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-full text-xs transition">
+                        📋 My Tasks
+                    </button>
+                    <button onclick="quickAction('Check my emails')" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-full text-xs transition">
+                        📧 Emails
+                    </button>
+                    <button onclick="quickAction('Show upcoming meetings')" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-full text-xs transition">
+                        📅 Meetings
+                    </button>
+                    <button onclick="quickAction('List my contacts')" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-full text-xs transition">
+                        👥 Contacts
+                    </button>
+                    <button onclick="quickAction('Show recent expenses')" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-full text-xs transition">
+                        💰 Expenses
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let recognition;
+        let isListening = false;
+        let conversationHistory = [];
+
+        // Initialize speech recognition
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = function() {
+                isListening = true;
+                document.getElementById('voice-btn').classList.add('pulse-ring', 'bg-red-600');
+                document.getElementById('voice-btn').classList.remove('bg-indigo-600');
+                document.getElementById('status-text').textContent = 'Listening...';
+            };
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('user-input').value = transcript;
+                sendMessage();
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                stopListening();
+                if (event.error === 'not-allowed') {
+                    alert('Microphone access denied. Please enable microphone permissions.');
+                }
+            };
+
+            recognition.onend = function() {
+                stopListening();
+            };
+        }
+
+        function toggleVoice() {
+            if (!recognition) {
+                alert('Speech recognition not supported in this browser. Please use Chrome or Edge.');
+                return;
+            }
+
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function stopListening() {
+            isListening = false;
+            document.getElementById('voice-btn').classList.remove('pulse-ring', 'bg-red-600');
+            document.getElementById('voice-btn').classList.add('bg-indigo-600');
+            document.getElementById('status-text').textContent = 'Ready to assist';
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function quickAction(message) {
+            document.getElementById('user-input').value = message;
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Auto-resize textarea
+            input.style.height = 'auto';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                // Send to backend
+                const response = await fetch('/api/ai_assistant', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        history: conversationHistory
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Remove typing indicator
+                removeTypingIndicator();
+
+                // Add assistant response
+                addMessage(data.response, 'assistant', data.actions);
+
+                // Speak response if enabled
+                if (data.response) {
+                    speakResponse(data.response);
+                }
+
+                // Update conversation history
+                conversationHistory.push({
+                    role: 'user',
+                    content: message
+                });
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: data.response
+                });
+
+                // Keep only last 10 exchanges
+                if (conversationHistory.length > 20) {
+                    conversationHistory = conversationHistory.slice(-20);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator();
+                addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+            }
+        }
+
+        function addMessage(text, sender, actions = null) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message-enter';
+
+            if (sender === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="flex items-start space-x-3 justify-end">
+                        <div class="bg-indigo-600 rounded-2xl rounded-tr-none px-4 py-3 max-w-2xl">
+                            <p class="text-sm text-white">${escapeHtml(text)}</p>
+                        </div>
+                        <div class="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-user text-sm"></i>
+                        </div>
+                    </div>
+                `;
+            } else {
+                let actionsHtml = '';
+                if (actions && actions.length > 0) {
+                    actionsHtml = '<div class="mt-3 flex flex-wrap gap-2">';
+                    actions.forEach(action => {
+                        actionsHtml += `<a href="${action.url}" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 rounded-full text-xs transition">${action.label}</a>`;
+                    });
+                    actionsHtml += '</div>';
+                }
+
+                messageDiv.innerHTML = `
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-robot text-sm"></i>
+                        </div>
+                        <div class="bg-slate-800 rounded-2xl rounded-tl-none px-4 py-3 max-w-2xl border border-slate-700">
+                            <p class="text-sm text-slate-200">${formatResponse(text)}</p>
+                            ${actionsHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const messagesDiv = document.getElementById('chat-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.className = 'message-enter';
+            typingDiv.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-robot text-sm"></i>
+                    </div>
+                    <div class="bg-slate-800 rounded-2xl rounded-tl-none px-4 py-3 border border-slate-700">
+                        <div class="typing-indicator flex space-x-1">
+                            <span class="w-2 h-2 bg-slate-400 rounded-full"></span>
+                            <span class="w-2 h-2 bg-slate-400 rounded-full"></span>
+                            <span class="w-2 h-2 bg-slate-400 rounded-full"></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        function clearChat() {
+            if (confirm('Clear all messages?')) {
+                const messagesDiv = document.getElementById('chat-messages');
+                messagesDiv.innerHTML = '';
+                conversationHistory = [];
+                location.reload();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatResponse(text) {
+            // Convert markdown-style formatting
+            text = escapeHtml(text);
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            text = text.replace(/\n/g, '<br>');
+            return text;
+        }
+
+        function speakResponse(text) {
+            // Optional: Text-to-speech
+            if ('speechSynthesis' in window) {
+                // Remove markdown formatting for speech
+                const cleanText = text.replace(/\*\*/g, '').replace(/\*/g, '');
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.volume = 0.8;
+                // Uncomment to enable auto-speech
+                // speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Auto-resize textarea
+        document.getElementById('user-input').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+    </script>
+</body>
+</html>

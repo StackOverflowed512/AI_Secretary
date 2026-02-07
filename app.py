@@ -220,6 +220,205 @@ def draft_email_api():
     draft = rag_utils.safe_call_llm(msgs, max_new_tokens=300)
     return jsonify({'draft': draft})
 
+@app.route('/ai-assistant')
+def ai_assistant():
+    return render_template('ai_assistant.html')
+
+@app.route('/api/ai_assistant', methods=['POST'])
+def ai_assistant_api():
+    """
+    Comprehensive AI Assistant API that processes natural language commands
+    and executes actions across all secretary features
+    """
+    data = request.json
+    user_message = data.get('message', '')
+    history = data.get('history', [])
+    
+    db = SessionLocal()
+    
+    try:
+        # Detect intent and extract entities
+        intent_prompt = f"""Analyze this user request and identify the intent and entities.
+User: {user_message}
+
+Respond in this exact format:
+INTENT: [one of: view_tasks, create_task, view_meetings, create_meeting, view_emails, view_contacts, create_contact, view_expenses, create_expense, view_voicemails, search_all, general_question, create_decision, view_decisions]
+ENTITIES: [relevant data like dates, names, amounts, etc.]
+"""
+        
+        intent_msgs = [
+            {"role": "system", "content": "You are an intent classifier for an AI secretary."},
+            {"role": "user", "content": intent_prompt}
+        ]
+        
+        intent_response = rag_utils.safe_call_llm(intent_msgs, max_new_tokens=150)
+        
+        # Parse intent
+        intent = "general_question"
+        if "INTENT:" in intent_response:
+            intent_line = [line for line in intent_response.split('\n') if 'INTENT:' in line][0]
+            intent = intent_line.split('INTENT:')[1].strip().lower()
+        
+        response_text = ""
+        actions = []
+        
+        # Execute based on intent
+        if intent == "view_tasks" or "task" in user_message.lower():
+            tasks = db.query(models.Task).order_by(models.Task.due_date).limit(10).all()
+            if tasks:
+                response_text = "📋 **Your Tasks:**\n\n"
+                for task in tasks:
+                    status_emoji = "✅" if task.status == "Completed" else "⏳" if task.status == "In Progress" else "📌"
+                    due_str = task.due_date.strftime('%b %d') if task.due_date else "No due date"
+                    response_text += f"{status_emoji} **{task.title}** - {task.priority} priority (Due: {due_str})\n"
+                actions.append({"label": "View All Tasks", "url": "/items"})
+            else:
+                response_text = "You don't have any tasks yet. Would you like me to create one?"
+                
+        elif intent == "create_task" or "create task" in user_message.lower() or "add task" in user_message.lower():
+            response_text = "I can help you create a task! Please provide:\n• Task title\n• Priority (Low/Medium/High)\n• Due date\n\nOr you can use the quick form:"
+            actions.append({"label": "Create Task", "url": "/items"})
+            
+        elif intent == "view_meetings" or "meeting" in user_message.lower():
+            upcoming = db.query(models.Meeting).filter(
+                models.Meeting.date_time >= datetime.now()
+            ).order_by(models.Meeting.date_time).limit(5).all()
+            
+            if upcoming:
+                response_text = "📅 **Upcoming Meetings:**\n\n"
+                for meeting in upcoming:
+                    date_str = meeting.date_time.strftime('%b %d at %I:%M %p')
+                    response_text += f"• **{meeting.title}**\n  {date_str}\n  Participants: {meeting.participants or 'None listed'}\n\n"
+                actions.append({"label": "View Calendar", "url": "/calendar"})
+            else:
+                response_text = "You have no upcoming meetings scheduled."
+                actions.append({"label": "Schedule Meeting", "url": "/items"})
+                
+        elif intent == "view_emails" or "email" in user_message.lower():
+            accounts = db.query(models.EmailAccount).all()
+            if accounts:
+                response_text = f"📧 **Email Accounts:**\n\nYou have {len(accounts)} email account(s) configured:\n"
+                for acc in accounts:
+                    response_text += f"• {acc.email} ({acc.provider})\n"
+                actions.append({"label": "Open Email", "url": "/email"})
+            else:
+                response_text = "You haven't configured any email accounts yet."
+                actions.append({"label": "Add Email Account", "url": "/email"})
+                
+        elif intent == "view_contacts" or "contact" in user_message.lower():
+            contacts = db.query(models.Contact).order_by(models.Contact.name).limit(10).all()
+            if contacts:
+                response_text = f"👥 **Your Contacts** ({len(contacts)} shown):\n\n"
+                for contact in contacts:
+                    org_str = f" - {contact.organization}" if contact.organization else ""
+                    response_text += f"• **{contact.name}**{org_str}\n  {contact.email or 'No email'}\n\n"
+                actions.append({"label": "View All Contacts", "url": "/contacts"})
+            else:
+                response_text = "You don't have any contacts saved yet."
+                actions.append({"label": "Add Contact", "url": "/contacts"})
+                
+        elif intent == "view_expenses" or "expense" in user_message.lower():
+            expenses = db.query(models.Expense).order_by(models.Expense.date.desc()).limit(10).all()
+            if expenses:
+                total = sum(e.amount for e in expenses)
+                response_text = f"💰 **Recent Expenses** (Total: ${total:.2f}):\n\n"
+                for exp in expenses:
+                    date_str = exp.date.strftime('%b %d')
+                    response_text += f"• **{exp.title}** - ${exp.amount:.2f}\n  {exp.category} ({date_str})\n\n"
+                actions.append({"label": "View All Expenses", "url": "/expenses"})
+            else:
+                response_text = "No expenses tracked yet."
+                actions.append({"label": "Add Expense", "url": "/expenses"})
+                
+        elif intent == "view_voicemails" or "voicemail" in user_message.lower():
+            voicemails = db.query(models.Voicemail).order_by(
+                models.Voicemail.received_date.desc()
+            ).limit(5).all()
+            
+            if voicemails:
+                response_text = f"📞 **Recent Voicemails** ({len(voicemails)}):\n\n"
+                for vm in voicemails:
+                    date_str = vm.received_date.strftime('%b %d at %I:%M %p')
+                    response_text += f"• **{vm.caller_name}** ({vm.caller_number})\n  {date_str}\n  \"{vm.transcription[:100]}...\"\n\n"
+                actions.append({"label": "View All Voicemails", "url": "/voicemail"})
+            else:
+                response_text = "No voicemails to display."
+                
+        elif intent == "view_decisions" or "decision" in user_message.lower():
+            decisions = db.query(models.Decision).order_by(
+                models.Decision.date.desc()
+            ).limit(5).all()
+            
+            if decisions:
+                response_text = "📝 **Recent Decisions:**\n\n"
+                for dec in decisions:
+                    date_str = dec.date.strftime('%b %d, %Y')
+                    response_text += f"• **{dec.title}**\n  {date_str}\n  {dec.description[:100]}...\n\n"
+                actions.append({"label": "View All Decisions", "url": "/items"})
+            else:
+                response_text = "No decisions recorded yet."
+                
+        elif intent == "search_all" or any(word in user_message.lower() for word in ["search", "find", "look for"]):
+            # Use RAG to search across all data
+            search_result = rag_utils.ask_seva_sakha(user_message, scope="all")
+            response_text = f"🔍 **Search Results:**\n\n{search_result}"
+            
+        else:
+            # General question - use RAG with context
+            # First, gather context
+            context_parts = []
+            
+            # Recent tasks
+            tasks = db.query(models.Task).filter(models.Task.status != "Completed").limit(3).all()
+            if tasks:
+                context_parts.append(f"Pending tasks: {', '.join([t.title for t in tasks])}")
+            
+            # Upcoming meetings
+            meetings = db.query(models.Meeting).filter(
+                models.Meeting.date_time >= datetime.now()
+            ).limit(2).all()
+            if meetings:
+                context_parts.append(f"Upcoming meetings: {', '.join([m.title for m in meetings])}")
+            
+            # Recent contacts
+            contacts_count = db.query(models.Contact).count()
+            context_parts.append(f"Total contacts: {contacts_count}")
+            
+            context = "\n".join(context_parts)
+            
+            # Try RAG first
+            rag_answer = rag_utils.ask_seva_sakha(user_message, scope="all")
+            
+            # Enhance with LLM
+            enhance_msgs = [
+                {"role": "system", "content": "You are a helpful AI secretary assistant. Provide concise, friendly responses."},
+                {"role": "user", "content": f"User question: {user_message}\n\nContext:\n{context}\n\nRAG Answer: {rag_answer}\n\nProvide a helpful response:"}
+            ]
+            
+            response_text = rag_utils.safe_call_llm(enhance_msgs, max_new_tokens=300)
+            
+            # Add helpful actions
+            actions.append({"label": "Dashboard", "url": "/"})
+            actions.append({"label": "Search Documents", "url": "/chat"})
+        
+        db.close()
+        
+        return jsonify({
+            'response': response_text,
+            'actions': actions,
+            'intent': intent
+        })
+        
+    except Exception as e:
+        db.close()
+        print(f"AI Assistant Error: {e}")
+        return jsonify({
+            'response': f"I encountered an error: {str(e)}. Please try rephrasing your question.",
+            'actions': [{"label": "Dashboard", "url": "/"}],
+            'intent': 'error'
+        })
+
+
 @app.route('/voicemail', methods=['GET', 'POST'])
 def voicemail():
     db = SessionLocal()
@@ -250,6 +449,23 @@ def voicemail():
     accounts = db.query(models.EmailAccount).all()
     db.close()
     return render_template('voicemail.html', voicemails=voicemails, accounts=accounts)
+
+@app.route('/voicemail/delete/<int:vm_id>', methods=['POST'])
+def delete_voicemail(vm_id):
+    db = SessionLocal()
+    try:
+        vm = db.query(models.Voicemail).get(vm_id)
+        if vm:
+            db.delete(vm)
+            db.commit()
+            flash("Voicemail archived.", "success")
+        else:
+            flash("Voicemail not found.", "danger")
+    except Exception as e:
+        flash(f"Error deleting voicemail: {e}", "danger")
+    finally:
+        db.close()
+    return redirect(url_for('voicemail'))
 
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
@@ -688,21 +904,94 @@ def voice():
         command = request.form.get('command', '')
         
         if command:
-            # Process voice command through LLM
-            messages = [
-                {
-                    "role": "system",
-                    "content": "You are a voice assistant. Process the user's voice command and provide a concise, actionable response."
-                },
-                {
-                    "role": "user",
-                    "content": command
-                }
-            ]
+            import json
+            import re
             
-            response_text = rag_utils.safe_call_llm(messages, max_new_tokens=200)
+            # Detect if it's a scheduling command
+            intent_prompt = f"""
+            Analyze this voice command: "{command}"
             
-            # Index voice interaction
+            Current date and time: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+            
+            Is this a request to schedule a meeting, call, or event?
+            If YES, return a JSON object with:
+            {{
+                "is_scheduling": true,
+                "title": "Short title describing the event",
+                "date": "YYYY-MM-DD HH:MM",
+                "duration": 60,
+                "attendees": "Names of people involved",
+                "description": "Any additional details"
+            }}
+            
+            If NO, return a JSON object with:
+            {{
+                "is_scheduling": false,
+                "response": "A helpful response to the user's query"
+            }}
+            
+            Return ONLY the valid JSON. Do not include markdown formatting or explanations.
+            """
+            
+            msgs = [{"role": "user", "content": intent_prompt}]
+            llm_response = rag_utils.safe_call_llm(msgs, max_new_tokens=400)
+            
+            try:
+                # Clean response to ensure valid JSON (remove potential markdown wrappers)
+                json_str = llm_response.strip()
+                if json_str.startswith('```json'):
+                    json_str = json_str[7:]
+                if json_str.startswith('```'):
+                    json_str = json_str[3:]
+                if json_str.endswith('```'):
+                    json_str = json_str[:-3]
+                
+                data = json.loads(json_str.strip())
+                
+                if data.get('is_scheduling'):
+                    title = data.get('title', 'Untitled Event')
+                    date_str = data.get('date')
+                    duration = int(data.get('duration', 60))
+                    attendees = data.get('attendees', '')
+                    desc = data.get('description', '')
+                    
+                    try:
+                        dt = datetime.strptime(date_str, '%Y-%m-%d %H:%M')
+                    except (ValueError, TypeError):
+                        # Fallback parsing
+                        dt = datetime.now() + timedelta(days=1)
+                        if date_str:
+                             desc += f" [Note: Original date string '{date_str}' could not be parsed]"
+                    
+                    db = SessionLocal()
+                    event = models.CalendarEvent(
+                        title=title,
+                        event_date=dt,
+                        duration=duration,
+                        description=desc,
+                        attendees=attendees,
+                        location="Voice Scheduled"
+                    )
+                    db.add(event)
+                    db.commit()
+                    
+                    date_formatted = dt.strftime('%b %d at %I:%M %p')
+                    response_text = f"✅ **Scheduled:** {title}\n📅 {date_formatted}\n👥 {attendees or 'No attendees'}"
+                    
+                    # Index to generic memory too
+                    event_text = f"Calendar Event: {title}\nDate: {dt.strftime('%Y-%m-%d %H:%M')}\nAttendees: {attendees}\nDescription: {desc}"
+                    rag_utils.index_into_memory("calendar_event", title, event_text)
+                    
+                    db.close()
+                else:
+                    response_text = data.get('response', llm_response)
+                    
+            except Exception as e:
+                print(f"Error parsing voice intent: {e}")
+                # Fallback to general chat if parsing fails
+                response_text = rag_utils.ask_seva_sakha(command, scope="all")
+
+            # Log interaction
             rag_utils.index_into_memory("voice_command", "Voice Command", f"Command: {command}\n\nResponse: {response_text}")
     
     return render_template('voice.html', response_text=response_text)
